@@ -62,7 +62,7 @@ g.AddText(, "Вес в КГ:")
 editWeight := g.AddEdit("r1 vWeight w150 Number")
 button := g.AddButton("Default w150 Disabled", "OK")
 button.OnEvent("Click", buttonEvent)
-editWeight.OnEvent("Change", ObjBindMethod(checkEditState, "Call", editWeight))
+editWeight.OnEvent("Change", ObjBindMethod(check_state_garantpost, "Call", editWeight))
 Tab3.UseTab()
 g.AddGroupBox("h60 w175", "Курсы на " date_rate)
 g.AddText("right xp+5 yp+17", "EUR: " EUR_rate "`nCHF: " CHF_rate "`nUSD: " USD_rate)
@@ -71,15 +71,67 @@ Tab3.UseTab("Аммира")
 ammiraList := []
 if ammira.Count = 0
     ammiraList.Push("Coming soon!")
-g.AddListBox("r20 vAmmiraChoice Choose1 w150 AltSubmit", ammiraList)
+else
+    for key, value in ammira
+        ammiraList.Push(key)
+g.AddListBox("r20 vAmmiraChoice Choose1 w150", ammiraList)
 g.AddText(, "Вес в КГ:")
+edit_weight_ammira := g.AddEdit("r1 vWeightAmmira w150 Number")
+button_ammira := g.AddButton("Default w150 Disabled", "OK")
+button_ammira.OnEvent("Click", button_ammira_event)
+edit_weight_ammira.OnEvent("Change", ObjBindMethod(check_state_ammira, "Call", edit_weight_ammira))
 Tab3.UseTab()
 
-checkEditState(edit, *) {
+button_ammira_event(*) {
+    up_to_500kg := 1
+    up_to_1t    := 2
+    up_to_2t    := 3
+    up_to_3t    := 4
+    up_to_5t    := 5
+    up_to_10t   := 6
+    up_to_15t   := 7
+    up_to_20t   := 8
+
+    destination := g.Submit().AmmiraChoice
+    weight := g.Submit().WeightAmmira
+
+    if weight <= 500
+        tariff := up_to_500kg
+    else if weight <= 1000
+        tariff := up_to_1t
+    else if weight <= 2000
+        tariff := up_to_2t
+    else if weight <= 3000
+        tariff := up_to_3t
+    else if weight <= 5000
+        tariff := up_to_5t
+    else if weight <= 10000
+        tariff := up_to_10t
+    else if weight <= 15000
+        tariff := up_to_15t
+    else if weight <= 20000
+        tariff := up_to_20t
+    else {
+        MsgBox("Вес превышает лимит в 20 тонн!")
+        Exit()
+    }
+
+    price := ammira[destination][tariff]
+
+    MsgBox(price " рублей`n`nПри пересчёте в валюту:`n" convertPrice(price, EUR_rate) " евро`n" convertPrice(price, CHF_rate) " франков`n" convertPrice(price, USD_rate) " долларов", "Стоимость доставки " weight " кг в " destination)
+}
+
+check_state_garantpost(edit, *) {
     if edit.Value != ""
         button.Enabled := 1
     else
         button.Enabled := 0
+}
+check_state_ammira(edit, *) {
+    if edit.Value != ""
+        button_ammira.Enabled := 1
+    else
+        button_ammira.Enabled := 0
 }
 
 buttonEvent(*) {
@@ -118,20 +170,8 @@ buttonEvent(*) {
             price := tariffs[destination][tariff] + ((weight - countStart)*tariffs[destination][markup])      
     }
 
-    toDot(number_with_comma) {
-        return StrReplace(number_with_comma, ",", ".")
-    }
-
-    toComma(number_with_comma) {
-        return StrReplace(number_with_comma, ".", ",")
-    }
-
-    convertPrice(currency) {
-        return toComma(Format("{:.2f}", price / toDot(currency)))
-    }
-
     if price != "****"
-        MsgBox(price " рублей`n`nПри пересчёте в валюту:`n" convertPrice(EUR_rate) " евро`n" convertPrice(CHF_rate) " франков`n" convertPrice(USD_rate) " долларов", "Стоимость доставки " weight " кг в " tariffs[destination][1])
+        MsgBox(price " рублей`n`nПри пересчёте в валюту:`n" convertPrice(price, EUR_rate) " евро`n" convertPrice(price, CHF_rate) " франков`n" convertPrice(price, USD_rate) " долларов", "Стоимость доставки " weight " кг в " tariffs[destination][1])
     else {
         Result := MsgBox("К сожалению, для отправлений в " tariffs[destination][1] " свыше 32 кг действует специальный тариф с применением регрессивной шкалы за каждый следующий кг, поэтому надо пересчитывать на сайте. Открыть калькулятор на сайте?", "Отправка в " tariffs[destination][1], "YesNo")
         if Result = "Yes"
@@ -139,6 +179,18 @@ buttonEvent(*) {
         else
             return
     }
+}
+
+toDot(number_with_comma) {
+    return StrReplace(number_with_comma, ",", ".")
+}
+
+toComma(number_with_comma) {
+    return StrReplace(number_with_comma, ".", ",")
+}
+
+convertPrice(price, currency) {
+    return toComma(Format("{:.2f}", price / toDot(currency)))
 }
 g.Show()
 
