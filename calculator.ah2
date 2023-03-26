@@ -68,8 +68,9 @@ g.AddGroupBox("h60 w175", "Курсы на " date_rate)
 g.AddText("right xp+5 yp+17", "EUR: " EUR_rate "`nCHF: " CHF_rate "`nUSD: " USD_rate)
 
 Tab3.UseTab("Аммира")
-if ammiraList.Capacity = 0
-    ammiraList.Push("Coming soon")
+ammiraList := []
+if ammira.Count = 0
+    ammiraList.Push("Coming soon!")
 g.AddListBox("r20 vAmmiraChoice Choose1 w150 AltSubmit", ammiraList)
 g.AddText(, "Вес в КГ:")
 Tab3.UseTab()
