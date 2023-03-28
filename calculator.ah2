@@ -50,8 +50,10 @@ for each in currencyNodes {
 
 g := Gui()
 g.Opt("-MaximizeBox AlwaysOnTop ToolWindow")
+g.OnEvent("Escape", (*) => close_gui())
+g.OnEvent("Close", (*) => close_gui())
 g.AddText(, "Калькулятор доставки")
-Tab3 := g.Add("Tab3", "vTab3", ["Гарантпост","Аммира"])
+Tab3 := g.Add("Tab3", "vTab3", ["Гарантпост","Аммира", "Даты"])
 ; g.Add("Tab3", "vTab3", ["Tab no.1","Tab no.2"])
 ; g.AddDropDownList("vGarantpostChoice")
 garantpostList := []
@@ -80,6 +82,27 @@ edit_weight_ammira := g.AddEdit("r1 vWeightAmmira w150 Number")
 button_ammira := g.AddButton("Default w150 Disabled", "OK")
 button_ammira.OnEvent("Click", button_ammira_event)
 edit_weight_ammira.OnEvent("Change", ObjBindMethod(check_state_ammira, "Call", edit_weight_ammira))
+
+Tab3.UseTab("Даты")
+g.AddText(, "Start date")
+g.AddDateTime("vStartDate w150", "dd.MM.yyyy")
+g.AddText(, "+/- Days:")
+days_edit := g.AddEdit("r1 w150 vDays Number", 1)
+g.AddText(, "+/- Weeks:")
+weeks_edit := g.AddEdit("r1 w150 vWeeks Number", 11)
+days_edit.OnEvent("Change", ObjBindMethod(check_state_date, "Call"))
+weeks_edit.OnEvent("Change", ObjBindMethod(check_state_date, "Call"))
+isDelivery := g.AddCheckbox("vDeliveryChecked Checked", "Calculate EXW + DDP")
+date_button := g.AddButton("w150 Default", "Calculate")
+date_button.OnEvent("Click", (*) => when_clicked())
+g.AddGroupBox("w150 h150", "Result:")
+date_result := g.AddText("xp+5 yp+16 w125", "The result will be printed here")
+date := {
+    StartDate: "",
+    Weeks: "",
+    Days: ""
+}
+; delivery_calculation_checked := ""
 Tab3.UseTab()
 
 button_ammira_event(*) {
@@ -133,6 +156,69 @@ check_state_ammira(edit, *) {
     else
         button_ammira.Enabled := 0
 }
+check_state_date(*) {
+    if (weeks_edit.Value != "" or days_edit.Value != "")
+        date_button.Enabled := 1
+    else
+        date_button.Enabled := 0
+}
+
+when_clicked() {
+
+    delivery_calculation_checked := g.Submit(0).DeliveryChecked
+
+    date.StartDate := g.Submit(0).StartDate
+    date.Weeks := g.Submit(0).Weeks
+    date.Days := g.Submit(0).Days
+    calculate()
+
+    calculate() {
+        
+        if date.Weeks != ""
+            number_of_weeks := Integer(date.Weeks) * 7
+        else
+            number_of_weeks := 0
+        if date.Days != ""
+            number_of_days := Integer(date.Days)
+        else
+            number_of_days := 0
+    
+        switch delivery_calculation_checked {
+            case 1:
+                calculate_delivery()
+            case 0:
+                calculate_date()
+            default:
+                MsgBox("The value of delivery_calculation_checked is something different.")
+        }
+            if delivery_calculation_checked = 1
+                calculate_delivery()
+            else
+                calculate_date()
+    
+        calculate_delivery() {
+            exw := DateAdd(date.StartDate, number_of_days, "Days")
+            date_exw := FormatTime(exw, "dd.MM.yyyy")
+            ddp := DateAdd(exw, number_of_weeks, "Days")
+            date_ddp := FormatTime(ddp, "dd.MM.yyyy")
+    
+            result := "EXW: " date_exw "`nDDP: " date_ddp
+    
+            ControlSetText(result, date_result)
+        }
+    
+        calculate_date() {
+            new_date := DateAdd(date.StartDate, number_of_days + number_of_weeks, "Days")
+            fDate_exw := FormatTime(new_date, "dd.MM.yyyy")
+    
+            result := "New date: " fDate_exw
+    
+            ControlSetText(result, date_result)
+        }
+    
+    }
+}
+
 
 buttonEvent(*) {
     destination := g.Submit().GarantpostChoice
@@ -179,6 +265,11 @@ buttonEvent(*) {
         else
             return
     }
+}
+
+close_gui() {
+    g.Hide(`)
+    Exit()
 }
 
 toDot(number_with_comma) {
