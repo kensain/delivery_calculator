@@ -198,6 +198,8 @@ when_clicked() {
     
         calculate_delivery() {
             exw := DateAdd(date.StartDate, number_of_days, "Days")
+            else
+                exw := DateAdd(date.StartDate, ((number_of_days // 5) * 7), "Days")
             date_exw := FormatTime(exw, "dd.MM.yyyy")
             ddp := DateAdd(exw, number_of_weeks, "Days")
             date_ddp := FormatTime(ddp, "dd.MM.yyyy")
