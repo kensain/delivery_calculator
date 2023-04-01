@@ -52,7 +52,7 @@ g := Gui()
 g.Opt("-MaximizeBox AlwaysOnTop ToolWindow")
 g.OnEvent("Escape", (*) => close_gui())
 g.OnEvent("Close", (*) => close_gui())
-g.AddText(, "Калькулятор доставки")
+g.AddText(, "Калькулятор доставки 2023")
 Tab3 := g.Add("Tab3", "vTab3", ["Гарантпост","Аммира", "Даты"])
 ; g.Add("Tab3", "vTab3", ["Tab no.1","Tab no.2"])
 ; g.AddDropDownList("vGarantpostChoice")
@@ -84,19 +84,19 @@ button_ammira.OnEvent("Click", button_ammira_event)
 edit_weight_ammira.OnEvent("Change", ObjBindMethod(check_state_ammira, "Call", edit_weight_ammira))
 
 Tab3.UseTab("Даты")
-g.AddText(, "Start date")
+g.AddText(, "Исходная дата")
 g.AddDateTime("vStartDate w150", "dd.MM.yyyy")
-g.AddText(, "+/- Days:")
+g.AddText(, "+/- дней(EXW):")
 days_edit := g.AddEdit("r1 w150 vDays Number", 1)
-g.AddText(, "+/- Weeks:")
+g.AddText(, "+/- недель(DDP):")
 weeks_edit := g.AddEdit("r1 w150 vWeeks Number", 11)
 days_edit.OnEvent("Change", ObjBindMethod(check_state_date, "Call"))
 weeks_edit.OnEvent("Change", ObjBindMethod(check_state_date, "Call"))
-isDelivery := g.AddCheckbox("vDeliveryChecked Checked", "Calculate EXW + DDP")
-date_button := g.AddButton("w150 Default", "Calculate")
+isDelivery := g.AddCheckbox("vDeliveryChecked Checked", "Рассчитать EXW + DDP")
+date_button := g.AddButton("w150 Default", "Рассчитать")
 date_button.OnEvent("Click", (*) => when_clicked())
-g.AddGroupBox("w150 h150", "Result:")
-date_result := g.AddText("xp+5 yp+16 w125", "The result will be printed here")
+g.AddGroupBox("w150 h150", "Результат:")
+date_result := g.AddText("xp+5 yp+16 w125 r10", "Результат будет здесь")
 date := {
     StartDate: "",
     Weeks: "",
@@ -184,27 +184,31 @@ when_clicked() {
             number_of_days := 0
     
         switch delivery_calculation_checked {
-            case 1:
+            case true:
                 calculate_delivery()
-            case 0:
+            case false:
                 calculate_date()
             default:
                 MsgBox("The value of delivery_calculation_checked is something different.")
         }
-            if delivery_calculation_checked = 1
-                calculate_delivery()
-            else
-                calculate_date()
+
+        if delivery_calculation_checked = true
+            calculate_delivery()
+        else
+            calculate_date()
     
         calculate_delivery() {
-            exw := DateAdd(date.StartDate, number_of_days, "Days")
+
+            if number_of_days < 5
+                exw := DateAdd(date.StartDate, number_of_days, "Days")
             else
                 exw := DateAdd(date.StartDate, ((number_of_days // 5) * 7), "Days")
             date_exw := FormatTime(exw, "dd.MM.yyyy")
             ddp := DateAdd(exw, number_of_weeks, "Days")
             date_ddp := FormatTime(ddp, "dd.MM.yyyy")
+            total_weeks := DateDiff(ddp, date.StartDate, "Days") // 7
     
-            result := "EXW: " date_exw "`nDDP: " date_ddp
+            result := "EXW: " date_exw "`nDDP: " date_ddp "`nИтого: " total_weeks " нед."
     
             ControlSetText(result, date_result)
         }
@@ -270,7 +274,7 @@ buttonEvent(*) {
 }
 
 close_gui() {
-    g.Hide(`)
+    g.Destroy()
     Exit()
 }
 
@@ -286,9 +290,3 @@ convertPrice(price, currency) {
     return toComma(Format("{:.2f}", price / toDot(currency)))
 }
 g.Show()
-
-; Win+Shift+D to show the GUI
-#+d::g.Show()
-; MenuHandler(Item, *) {
-;     MsgBox "You selected " Item
-; }
