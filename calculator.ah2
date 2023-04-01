@@ -54,8 +54,6 @@ g.OnEvent("Escape", (*) => close_gui())
 g.OnEvent("Close", (*) => close_gui())
 g.AddText(, "Калькулятор доставки 2023")
 Tab3 := g.Add("Tab3", "vTab3", ["Гарантпост","Аммира", "Даты"])
-; g.Add("Tab3", "vTab3", ["Tab no.1","Tab no.2"])
-; g.AddDropDownList("vGarantpostChoice")
 garantpostList := []
 for each in tariffs
     garantpostList.Push(each[1])
