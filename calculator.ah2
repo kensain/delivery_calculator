@@ -1,58 +1,64 @@
 #SingleInstance Force
 
 #Include tariffs_2023.ah2
+#Include "C:\Users\Максим\Documents\AutoHotkey\Lib\CBR.ah2"
 
-; Create WinHttpRequest object
-WinHttp := ComObject("WinHttp.WinHttpRequest.5.1")
+; ; Create WinHttpRequest object
+; WinHttp := ComObject("WinHttp.WinHttpRequest.5.1")
 
-; Download XML data from the URL
-url := "http://www.cbr.ru/scripts/XML_daily.asp"
-WinHttp.Open("GET", url)
-WinHttp.Send()
+; ; Download XML data from the URL
+; url := "http://www.cbr.ru/scripts/XML_daily.asp"
+; WinHttp.Open("GET", url)
+; WinHttp.Send()
 
-if (WinHttp.Status != 200) {
-    MsgBox("Error", "Failed to download XML data.`n`nMake sure you have an active internet connection and try again.")
-    ExitApp
-}
+; if (WinHttp.Status != 200) {
+;     MsgBox("Error", "Failed to download XML data.`n`nMake sure you have an active internet connection and try again.")
+;     ExitApp
+; }
 
-xml := WinHttp.ResponseText
+; xml := WinHttp.ResponseText
 
-; Parse XML data
-XmlDoc := ComObject("Msxml2.DOMDocument.6.0")
-XmlDoc.async := false
-XmlDoc.loadXML(xml)
+; ; Parse XML data
+; XmlDoc := ComObject("Msxml2.DOMDocument.6.0")
+; XmlDoc.async := false
+; XmlDoc.loadXML(xml)
 
-if (XmlDoc.parseError.errorCode != 0) {
-    MsgBox("Error", "Failed to parse XML data.`n`nError: " . XmlDoc.parseError.reason)
-    ExitApp
-}
+; if (XmlDoc.parseError.errorCode != 0) {
+;     MsgBox("Error", "Failed to parse XML data.`n`nError: " . XmlDoc.parseError.reason)
+;     ExitApp
+; }
 
-; Extract currency data
-root := XmlDoc.documentElement
-currencyNodes := root.getElementsByTagName("Valute")
-date_rate := root.getAttribute("Date")
+; ; Extract currency data
+; root := XmlDoc.documentElement
+; currencyNodes := root.getElementsByTagName("Valute")
+; date_rate := root.getAttribute("Date")
 
-; Initialize variables for storing currency rates
-EUR_rate := ""
-CHF_rate := ""
-USD_rate := ""
+; ; Initialize variables for storing currency rates
+; EUR_rate := ""
+; CHF_rate := ""
+; USD_rate := ""
 
-for each in currencyNodes {
-    charCode := each.getElementsByTagName("CharCode").item(0).text
-    if (charCode = "EUR") {
-        EUR_rate := each.getElementsByTagName("Value").item(0).text
-    } else if (charCode = "CHF") {
-        CHF_rate := each.getElementsByTagName("Value").item(0).text
-    } else if (charCode = "USD") {
-        USD_rate := each.getElementsByTagName("Value").item(0).text
-    }
-}
+; for each in currencyNodes {
+;     charCode := each.getElementsByTagName("CharCode").item(0).text
+;     if (charCode = "EUR") {
+;         EUR_rate := each.getElementsByTagName("Value").item(0).text
+;     } else if (charCode = "CHF") {
+;         CHF_rate := each.getElementsByTagName("Value").item(0).text
+;     } else if (charCode = "USD") {
+;         USD_rate := each.getElementsByTagName("Value").item(0).text
+;     }
+; }
+
+date_rate := CBR("EUR").date
+EUR_rate := CBR("EUR").rate
+CHF_rate := CBR("CHF").rate
+USD_rate := CBR("USD").rate
 
 g := Gui()
 g.Opt("-MaximizeBox AlwaysOnTop ToolWindow")
 g.OnEvent("Escape", (*) => close_gui())
 g.OnEvent("Close", (*) => close_gui())
-g.AddText(, "Калькулятор доставки 2023")
+g.Title := "Калькулятор доставки 2023"
 Tab3 := g.Add("Tab3", "vTab3", ["Гарантпост","Аммира", "Даты"])
 garantpostList := []
 for each in tariffs
@@ -67,6 +73,14 @@ Tab3.UseTab()
 g.AddGroupBox("h60 w175", "Курсы на " date_rate)
 g.AddText("right xp+5 yp+17", "EUR: " EUR_rate "`nCHF: " CHF_rate "`nUSD: " USD_rate)
 
+CalDate := convert_date(date_rate)
+convert_date(date) {
+    input := StrSplit(date, ".")
+    output := "Choose" . input[3] . input[2] . input[1]
+    return output
+}
+gDate := g.AddDateTime("w160 vCBRDate " . CalDate, "dd.MM.yyyy")
+gDate.OnEvent("Change", TrayTip.Bind("Change!"))
 Tab3.UseTab("Аммира")
 ammiraList := []
 if ammira.Count = 0
