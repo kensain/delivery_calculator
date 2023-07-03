@@ -7,9 +7,10 @@ date_rate := CBR("EUR").date
 EUR_rate := CBR("EUR").rate
 CHF_rate := CBR("CHF").rate
 USD_rate := CBR("USD").rate
+CNY_rate := CBR("CNY").rate
 
 g := Gui()
-g.Opt("-MaximizeBox AlwaysOnTop ToolWindow")
+g.Opt("AlwaysOnTop ToolWindow")
 g.OnEvent("Escape", (*) => close_gui())
 g.OnEvent("Close", (*) => close_gui())
 g.Title := "Калькулятор доставки 2023"
@@ -24,17 +25,56 @@ button := g.AddButton("Default w150 Disabled", "OK")
 button.OnEvent("Click", buttonEvent)
 editWeight.OnEvent("Change", ObjBindMethod(check_state_garantpost, "Call", editWeight))
 Tab3.UseTab()
-g.AddGroupBox("h60 w175", "Курсы на " date_rate)
-g.AddText("right xp+5 yp+17", "EUR: " EUR_rate "`nCHF: " CHF_rate "`nUSD: " USD_rate)
-
+; SelectedDate := g.AddGroupBox("h60 w175", "Курсы на " date_rate)
+g.AddText(, "Курсы на")
 CalDate := convert_date(date_rate)
+gDate := g.AddDateTime("yp w108 vCBRDate " . CalDate, "dd.MM.yyyy")
+; Rates := g.AddText("right xp+5 yp+17", "EUR: " EUR_rate "`nCHF: " CHF_rate "`nUSD: " USD_rate)
+; Rates := g.AddText("xm", "EUR: " EUR_rate "`nCHF: " CHF_rate "`nUSD: " USD_rate)
+; g.AddText("xm", "EUR")
+; EUR := g.AddEdit("ReadOnly")
+; g.AddText(, "CHF")
+; CHF := g.AddEdit("ReadOnly")
+; g.AddText(, "USD")
+; USD := g.AddEdit("ReadOnly")
+; g.AddText(, "CNY")
+; CNY := g.AddEdit("ReadOnly")
+gDate.OnEvent("Change", (*) => update_rateButton())
+
+g.AddEdit("ReadOnly Disabled r1 w28 xm", "EUR")
+EUR := g.AddEdit("ReadOnly r1 w46 yp", EUR_rate)
+g.AddEdit("ReadOnly Disabled r1 w28 yp", "CHF")
+CHF := g.AddEdit("ReadOnly r1 w46 yp", CHF_rate)
+g.AddEdit("ReadOnly Disabled r1 w28 xm", "USD")
+USD := g.AddEdit("ReadOnly r1 w46 yp", USD_rate)
+g.AddEdit("ReadOnly Disabled r1 w28 yp", "CNY")
+CNY := g.AddEdit("ReadOnly r1 w46 yp", CNY_rate)
+ProofCheck := g.AddLink("xm", 'Проверить курс на <a href="https://www.cbr.ru/currency_base/daily/?UniDbQuery.Posted=True&UniDbQuery.To=' . date_rate . '">сайте</a> ЦБ РФ')
+
 convert_date(date) {
     input := StrSplit(date, ".")
     output := "Choose" . input[3] . input[2] . input[1]
     return output
 }
-gDate := g.AddDateTime("w160 vCBRDate " . CalDate, "dd.MM.yyyy")
-gDate.OnEvent("Change", TrayTip.Bind("Change!"))
+update_rate(date?) {
+    if IsSet(date) = false
+        date := "24.08.2022"
+    
+    date_rate := CBR("EUR", , date).date
+    EUR.Text := EUR_rate := CBR("EUR",  ,date).rate
+    CHF.Text := CHF_rate := CBR("CHF",  ,date).rate
+    USD.Text := USD_rate := CBR("USD",  ,date).rate
+    CNY.Text := CNY_rate := CBR("CNY",  ,date).rate
+    gDate.Value := StrSplit(date_rate, ".")[3] . StrSplit(date_rate, ".")[2] . StrSplit(date_rate, ".")[1]
+}
+update_rateButton(*) {
+    d := FormatTime(g.Submit(false).CBRDate, "dd.MM.yyyy")
+    Sleep(500)
+    update_rate(d)
+}
+SB := g.AddStatusBar(, "...")
+; SB.SetText("There are " . EUR_rate . " rows selected.")
+
 Tab3.UseTab("Аммира")
 ammiraList := []
 if ammira.Count = 0
@@ -107,7 +147,7 @@ button_ammira_event(*) {
 
     price := ammira[destination][tariff]
 
-    MsgBox(price " рублей`n`nПри пересчёте в валюту:`n" convertPrice(price, EUR_rate) " евро`n" convertPrice(price, CHF_rate) " франков`n" convertPrice(price, USD_rate) " долларов", "Стоимость доставки " weight " кг в " destination)
+    MsgBox(price " рублей`n`nПри пересчёте в валюту:`n" convertPrice(price, EUR_rate) " евро`n" convertPrice(price, CHF_rate) " франков`n" convertPrice(price, USD_rate) " долларов`n" convertPrice(price, CNY_rate) " юаней", "Стоимость доставки " weight " кг в " destination)
 }
 
 check_state_garantpost(edit, *) {
