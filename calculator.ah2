@@ -1,59 +1,19 @@
 #SingleInstance Force
 
 #Include tariffs_2023.ah2
+#Include <CBR>
 
-; Create WinHttpRequest object
-WinHttp := ComObject("WinHttp.WinHttpRequest.5.1")
-
-; Download XML data from the URL
-url := "http://www.cbr.ru/scripts/XML_daily.asp"
-WinHttp.Open("GET", url)
-WinHttp.Send()
-
-if (WinHttp.Status != 200) {
-    MsgBox("Error", "Failed to download XML data.`n`nMake sure you have an active internet connection and try again.")
-    ExitApp
-}
-
-xml := WinHttp.ResponseText
-
-; Parse XML data
-XmlDoc := ComObject("Msxml2.DOMDocument.6.0")
-XmlDoc.async := false
-XmlDoc.loadXML(xml)
-
-if (XmlDoc.parseError.errorCode != 0) {
-    MsgBox("Error", "Failed to parse XML data.`n`nError: " . XmlDoc.parseError.reason)
-    ExitApp
-}
-
-; Extract currency data
-root := XmlDoc.documentElement
-currencyNodes := root.getElementsByTagName("Valute")
-date_rate := root.getAttribute("Date")
-
-; Initialize variables for storing currency rates
-EUR_rate := ""
-CHF_rate := ""
-USD_rate := ""
-
-for each in currencyNodes {
-    charCode := each.getElementsByTagName("CharCode").item(0).text
-    if (charCode = "EUR") {
-        EUR_rate := each.getElementsByTagName("Value").item(0).text
-    } else if (charCode = "CHF") {
-        CHF_rate := each.getElementsByTagName("Value").item(0).text
-    } else if (charCode = "USD") {
-        USD_rate := each.getElementsByTagName("Value").item(0).text
-    }
-}
+date_rate := CBR("EUR").date
+EUR_rate := CBR("EUR").rate
+CHF_rate := CBR("CHF").rate
+USD_rate := CBR("USD").rate
 
 g := Gui()
 g.Opt("-MaximizeBox AlwaysOnTop ToolWindow")
-g.AddText(, "Калькулятор доставки")
-Tab3 := g.Add("Tab3", "vTab3", ["Гарантпост","Аммира"])
-; g.Add("Tab3", "vTab3", ["Tab no.1","Tab no.2"])
-; g.AddDropDownList("vGarantpostChoice")
+g.OnEvent("Escape", (*) => close_gui())
+g.OnEvent("Close", (*) => close_gui())
+g.Title := "Калькулятор доставки 2023"
+Tab3 := g.Add("Tab3", "vTab3", ["Гарантпост","Аммира", "Даты"])
 garantpostList := []
 for each in tariffs
     garantpostList.Push(each[1])
@@ -67,6 +27,14 @@ Tab3.UseTab()
 g.AddGroupBox("h60 w175", "Курсы на " date_rate)
 g.AddText("right xp+5 yp+17", "EUR: " EUR_rate "`nCHF: " CHF_rate "`nUSD: " USD_rate)
 
+CalDate := convert_date(date_rate)
+convert_date(date) {
+    input := StrSplit(date, ".")
+    output := "Choose" . input[3] . input[2] . input[1]
+    return output
+}
+gDate := g.AddDateTime("w160 vCBRDate " . CalDate, "dd.MM.yyyy")
+gDate.OnEvent("Change", TrayTip.Bind("Change!"))
 Tab3.UseTab("Аммира")
 ammiraList := []
 if ammira.Count = 0
@@ -80,6 +48,27 @@ edit_weight_ammira := g.AddEdit("r1 vWeightAmmira w150 Number")
 button_ammira := g.AddButton("Default w150 Disabled", "OK")
 button_ammira.OnEvent("Click", button_ammira_event)
 edit_weight_ammira.OnEvent("Change", ObjBindMethod(check_state_ammira, "Call", edit_weight_ammira))
+
+Tab3.UseTab("Даты")
+g.AddText(, "Исходная дата")
+g.AddDateTime("vStartDate w150", "dd.MM.yyyy")
+g.AddText(, "+/- дней(EXW):")
+days_edit := g.AddEdit("r1 w150 vDays Number", 1)
+g.AddText(, "+/- недель(DDP):")
+weeks_edit := g.AddEdit("r1 w150 vWeeks Number", 11)
+days_edit.OnEvent("Change", ObjBindMethod(check_state_date, "Call"))
+weeks_edit.OnEvent("Change", ObjBindMethod(check_state_date, "Call"))
+isDelivery := g.AddCheckbox("vDeliveryChecked Checked", "Рассчитать EXW + DDP")
+date_button := g.AddButton("w150 Default", "Рассчитать")
+date_button.OnEvent("Click", (*) => when_clicked())
+g.AddGroupBox("w150 h150", "Результат:")
+date_result := g.AddText("xp+5 yp+16 w125 r10", "Результат будет здесь")
+date := {
+    StartDate: "",
+    Weeks: "",
+    Days: ""
+}
+; delivery_calculation_checked := ""
 Tab3.UseTab()
 
 button_ammira_event(*) {
@@ -133,6 +122,75 @@ check_state_ammira(edit, *) {
     else
         button_ammira.Enabled := 0
 }
+check_state_date(*) {
+    if (weeks_edit.Value != "" or days_edit.Value != "")
+        date_button.Enabled := 1
+    else
+        date_button.Enabled := 0
+}
+
+when_clicked() {
+
+    delivery_calculation_checked := g.Submit(0).DeliveryChecked
+
+    date.StartDate := g.Submit(0).StartDate
+    date.Weeks := g.Submit(0).Weeks
+    date.Days := g.Submit(0).Days
+    calculate()
+
+    calculate() {
+        
+        if date.Weeks != ""
+            number_of_weeks := Integer(date.Weeks) * 7
+        else
+            number_of_weeks := 0
+        if date.Days != ""
+            number_of_days := Integer(date.Days)
+        else
+            number_of_days := 0
+    
+        switch delivery_calculation_checked {
+            case true:
+                calculate_delivery()
+            case false:
+                calculate_date()
+            default:
+                MsgBox("The value of delivery_calculation_checked is something different.")
+        }
+
+        if delivery_calculation_checked = true
+            calculate_delivery()
+        else
+            calculate_date()
+    
+        calculate_delivery() {
+
+            if number_of_days < 5
+                exw := DateAdd(date.StartDate, number_of_days, "Days")
+            else
+                exw := DateAdd(date.StartDate, ((number_of_days // 5) * 7), "Days")
+            date_exw := FormatTime(exw, "dd.MM.yyyy")
+            ddp := DateAdd(exw, number_of_weeks, "Days")
+            date_ddp := FormatTime(ddp, "dd.MM.yyyy")
+            total_weeks := DateDiff(ddp, date.StartDate, "Days") // 7
+    
+            result := "EXW: " date_exw "`nDDP: " date_ddp "`nИтого: " total_weeks " нед."
+    
+            ControlSetText(result, date_result)
+        }
+    
+        calculate_date() {
+            new_date := DateAdd(date.StartDate, number_of_days + number_of_weeks, "Days")
+            fDate_exw := FormatTime(new_date, "dd.MM.yyyy")
+    
+            result := "New date: " fDate_exw
+    
+            ControlSetText(result, date_result)
+        }
+    
+    }
+}
+
 
 buttonEvent(*) {
     destination := g.Submit().GarantpostChoice
@@ -181,6 +239,11 @@ buttonEvent(*) {
     }
 }
 
+close_gui() {
+    g.Destroy()
+    Exit()
+}
+
 toDot(number_with_comma) {
     return StrReplace(number_with_comma, ",", ".")
 }
@@ -193,9 +256,3 @@ convertPrice(price, currency) {
     return toComma(Format("{:.2f}", price / toDot(currency)))
 }
 g.Show()
-
-; Win+Shift+D to show the GUI
-#+d::g.Show()
-; MenuHandler(Item, *) {
-;     MsgBox "You selected " Item
-; }
