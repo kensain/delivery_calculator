@@ -43,19 +43,30 @@ bCalculator() {
     ; CNY := g.AddEdit("ReadOnly")
     gDate.OnEvent("Change", (*) => update_rateButton())
 
-    g.AddText("r1 w28 xm", "EUR").OnEvent("DoubleClick", copyRate.Bind(EUR_rate))
+    g.AddText("r1 w28 xm", "EUR").OnEvent("DoubleClick", copyText.Bind("Rate", EUR_rate))
     EUR := g.AddEdit("ReadOnly r1 w46 yp", EUR_rate)
-    g.AddText("r1 w28 yp", "CHF").OnEvent("DoubleClick", copyRate.Bind(CHF_rate))
+    g.AddText("r1 w28 yp", "CHF").OnEvent("DoubleClick", copyText.Bind("Rate", CHF_rate))
     CHF := g.AddEdit("ReadOnly r1 w46 yp", CHF_rate)
-    g.AddText("r1 w28 xm", "USD").OnEvent("DoubleClick", copyRate.Bind(USD_rate))
+    g.AddText("r1 w28 xm", "USD").OnEvent("DoubleClick", copyText.Bind("Rate", USD_rate))
     USD := g.AddEdit("ReadOnly r1 w46 yp", USD_rate)
-    g.AddText("r1 w28 yp", "CNY").OnEvent("DoubleClick", copyRate.Bind(CNY_rate))
+    g.AddText("r1 w28 yp", "CNY").OnEvent("DoubleClick", copyText.Bind("Rate", CNY_rate))
     CNY := g.AddEdit("ReadOnly r1 w46 yp", CNY_rate)
     ProofCheck := g.AddLink("xm", 'Проверить курс на <a href="https://www.cbr.ru/currency_base/daily/?UniDbQuery.Posted=True&UniDbQuery.To=' . date_rate . '">сайте</a> ЦБ РФ')
 
-    copyRate(Rate, *) {
-        A_Clipboard := Rate
-        Info(Format("Курс {1} скопирован!", Rate))
+    /**
+     * 
+     * @param {String} Mode 'Date' or 'Rate'
+     * @param {String} textToCopy Text to copy
+     */
+    copyText(Mode, textToCopy, *) {
+        switch Mode {
+            case "Rate":
+                textToFormat := "Курс {1} скопирован!"
+            case "Date":
+                textToFormat := "Дата {1} скопирована!"
+        }
+        A_Clipboard := textToCopy
+        Info(Format(textToFormat, textToCopy))
     }
 
     convert_date(date) {
@@ -117,8 +128,9 @@ bCalculator() {
     date_button.OnEvent("Click", (*) => when_clicked())
     groupResults := g.AddGroupBox("w150 h150", "Сроки поставки")
     ; date_result := g.AddText("xp+5 yp+16 w125 r10", "Результат будет здесь")
-    resultText1A := g.AddText("xp+5 yp+16 w125", "Строка 1")
-    resultText1B := g.AddText("w125", "Строка 2")
+    resultText1A := g.AddText("xp+5 yp+16 w125")
+    resultText1A.OnEvent("DoubleClick", copyText.Bind("Date", resultText1A.Text))
+    resultText1B := g.AddText("w125")
     resultText2A := g.AddText()
     resultText2B := g.AddText()
     date := {
