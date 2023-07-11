@@ -1,8 +1,8 @@
 #SingleInstance Force
 
 #Include tariffs_2023.ah2
-#Include <CBR>
-#Include <Info>
+#Include <AHKv2_Scripts\CBR>
+#Include <AHKv2_Scripts\Info>
 
 bCalculator() {
     date_rate := CBR("EUR").date
