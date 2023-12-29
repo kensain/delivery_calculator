@@ -1,16 +1,18 @@
 #SingleInstance Force
 
-#Include tariffs_2023.ah2
-#Include <AHKv2_Scripts\CBR>
-#Include <AHKv2_Scripts\Info>
-#Include <bLib\SpellSum>
+#Include <tariffs_2023>
 #Include <DeliveryCosts>
+#Include <AHKv2_Scripts\Info>
+#Include <bLib\CBR2>
+#Include <bLib\SpellSum>
 bCalculator() {
-	date_rate := CBR("EUR").date
-	EUR_rate := CBR("EUR").rate
-	CHF_rate := CBR("CHF").rate
-	USD_rate := CBR("USD").rate
-	CNY_rate := CBR("CNY").rate
+
+	InitialRates := CBR2()
+	date_rate := InitialRates.Date
+	EUR_rate := InitialRates.Currency["EUR"]
+	CHF_rate := InitialRates.Currency["CHF"]
+	USD_rate := InitialRates.Currency["USD"]
+	CNY_rate := InitialRates.Currency["CNY"]
 
 	OrderCondition := 0
 	SetOrderCondition(Int, *) {
@@ -37,7 +39,7 @@ bCalculator() {
 	g.AddText(, "Курсы на")
 	CalDate := convert_date(date_rate)
 	gDate := g.AddDateTime("yp w108 vCBRDate " . CalDate, "dd.MM.yyyy")
-	gDate.OnEvent("Change", (*) => update_rateButton())
+	gDate.OnEvent("Change", (*) => ClickUpdateRates())
 
 	tEUR := g.AddText("r1 w22 xm", "EUR")
 	EUR := g.AddEdit("ReadOnly r1 w55 yp", EUR_rate)
@@ -58,21 +60,21 @@ bCalculator() {
 		output := "Choose" . input[3] . input[2] . input[1]
 		return output
 	}
-	update_rate(date?) {
+	UpdateRates(date?) {
 		if IsSet(date) = false
 			date := "24.08.2022"
-
-		date_rate := CBR("EUR", , date).date
-		EUR.Text := EUR_rate := CBR("EUR", , date).rate
-		CHF.Text := CHF_rate := CBR("CHF", , date).rate
-		USD.Text := USD_rate := CBR("USD", , date).rate
-		CNY.Text := CNY_rate := CBR("CNY", , date).rate
+		new_rates := CBR2(date)
+		date_rate := new_rates.date
+		EUR.Text := EUR_rate := new_rates.Currency["EUR"]
+		CHF.Text := CHF_rate := new_rates.Currency["CHF"]
+		USD.Text := USD_rate := new_rates.Currency["USD"]
+		CNY.Text := CNY_rate := new_rates.Currency["CNY"]
 		gDate.Value := StrSplit(date_rate, ".")[3] . StrSplit(date_rate, ".")[2] . StrSplit(date_rate, ".")[1]
 	}
-	update_rateButton(*) {
-		d := FormatTime(g.Submit(false).CBRDate, "dd.MM.yyyy")
+	ClickUpdateRates(*) {
+		new_date := FormatTime(g.Submit(false).CBRDate, "dd.MM.yyyy")
 		Sleep(500)
-		update_rate(d)
+		UpdateRates(new_date)
 	}
 
 	Tab3.UseTab("Аммира")
@@ -200,7 +202,6 @@ bCalculator() {
 	}
 
 	Tab3.UseTab()
-
 
 	/**
 	 * 
@@ -403,12 +404,11 @@ bCalculator() {
 			else
 				price := tariffs[destination][tariff] + ((weight - countStart) * tariffs[destination][markup])
 		}
+		
 		costs := [price, convertPrice(price, EUR_rate), convertPrice(price, CHF_rate), convertPrice(price, USD_rate), convertPrice(price, CNY_rate)]
 		title := Format("Стоимость доставки {1} кг в {2}", weight, tariffs[destination][1])
-		MsgBox(title)
 		if price != "****"
 			DeliveryCosts(title, costs*)
-			; MsgBox(Format("{1} рублей`n`nПри пересчёте в валюту:`n{2} евро`n{3} франков`n{4} долларов`n{5} юаней", price, convertPrice(price, EUR_rate), convertPrice(price, CHF_rate), convertPrice(price, USD_rate), convertPrice(price, CNY_rate)), Format("Стоимость доставки {1} кг в {2}", weight, tariffs[destination][1]))
 		else {
 			Result := MsgBox(Format("К сожалению, для отправлений в {1} свыше 32 кг действует специальный тариф с применением регрессивной шкалы за каждый следующий кг, поэтому надо пересчитывать на сайте. `nОткрыть калькулятор на сайте?", tariffs[destination][1]), Format("Отправка в {}", tariffs[destination][1]), "YesNo")
 			if Result = "Yes"
