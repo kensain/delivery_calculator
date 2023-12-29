@@ -25,7 +25,7 @@ button.OnEvent("Click", buttonEvent)
 editWeight.OnEvent("Change", ObjBindMethod(check_state_garantpost, "Call", editWeight))
 Tab3.UseTab()
 g.AddGroupBox("h60 w175", "Курсы на " date_rate)
-g.AddText("right xp+5 yp+17", "EUR: " EUR_rate "`nCHF: " CHF_rate "`nUSD: " USD_rate)
+g.AddText("right xp+5 yp+17", Format("EUR: {1} `nCHF: {2} `nUSD: {3}", EUR_rate, CHF_rate, USD_rate))
 
 CalDate := convert_date(date_rate)
 convert_date(date) {
