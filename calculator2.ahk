@@ -1,5 +1,5 @@
 #SingleInstance Force
-
+#Requires AutoHotkey v2.0-a
 #Include <tariffs_2023>
 #Include <DeliveryCosts>
 #Include <AHKv2_Scripts\Info>
@@ -212,7 +212,7 @@ bCalculator() {
 		if ControlGetText(ControlGetHwnd(Control)) = ""
 			return
 		Conditions := Map(
-			1, "{1} с аванса",
+			1, "{1} с момента поступления авансового платежа на счет Поставщика.",
 			2, "{1} от подписания",
 			3, "{1} от размещения",
 		)
