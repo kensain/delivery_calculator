@@ -177,11 +177,12 @@ bCalculator() {
 	g.AddEdit("r1 w150 vSum")
 	g.AddRadio("Checked vCurrencyRadioGroup", "RUB")
 	g.AddRadio("yp", "EUR")
-	g.AddRadio("yp", "USD")
-	g.AddText("x22 y120 w100", "НДС:")
+	g.AddRadio("x22 y120", "USD")
+	g.AddRadio("yp", "CHF")
+	g.AddText("x22 y144 w100", "НДС:")
 	vat := [0, 7, 10, 12, 13, 15, 17, 18, 20]
-	g.AddDropDownList("x55 y116 r9 Choose9 w117 vTax", vat)
-	spell_button := g.AddButton("x22 y145 w150", "Превратить в текст")
+	g.AddDropDownList("x55 y140 r9 Choose9 w117 vTax", vat)
+	spell_button := g.AddButton("x22 y168 w150", "Превратить в текст")
 	spell_button.OnEvent("Click", (*) => click_spell())
 	sum_field := g.AddEdit("w150 r10 ReadOnly")
 
@@ -199,8 +200,15 @@ bCalculator() {
 			case 1: currency := "RUB"
 			case 2: currency := "EUR"
 			case 3: currency := "USD"
+			case 4: currency := "USD"
 		}
 		spelt_sum := SpellSum(spell_data.digit_sum, currency, spell_data.vat)
+		if spell_data.currency = 4 {
+			spelt_sum := StrReplace(spelt_sum, "доллар", "франк")
+			spelt_sum := StrReplace(spelt_sum, "франкы", "франки")
+			spelt_sum := StrReplace(spelt_sum, "цент", "раппин")
+			spelt_sum := StrReplace(spelt_sum, " США")
+		}
 		ControlSetText(spelt_sum, sum_field)
 	}
 
