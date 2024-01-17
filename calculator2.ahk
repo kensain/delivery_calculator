@@ -206,7 +206,8 @@ bCalculator() {
 		if spell_data.currency = 4 {
 			spelt_sum := StrReplace(spelt_sum, "доллар", "франк")
 			spelt_sum := StrReplace(spelt_sum, "франкы", "франки")
-			spelt_sum := StrReplace(spelt_sum, "цент", "раппин")
+			spelt_sum := StrReplace(spelt_sum, "цент", "раппен")
+			spelt_sum := StrReplace(spelt_sum, "USD", "CHF")
 			spelt_sum := StrReplace(spelt_sum, " США")
 		}
 		ControlSetText(spelt_sum, sum_field)
