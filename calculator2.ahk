@@ -1,6 +1,6 @@
 #SingleInstance Force
 #Requires AutoHotkey v2.0-a
-#Include <tariffs_2023>
+#Include <tariffs_2024>
 #Include <DeliveryCosts>
 #Include <AHKv2_Scripts\Info>
 #Include <bLib\CBR2>
@@ -100,7 +100,7 @@ bCalculator() {
 	text_days := g.AddText("x22 y114 r1 w150", "+/- дней(EXW):")
 	g.AddEdit("w150")
 	days_edit := g.AddUpDown("vDays Range0-180", 1)
-	text_weeks := g.AddText("r1 w150", "+/- недель(DDP):")
+	text_weeks := g.AddText("r1 w150 vDDPweeks", "+/- недель(DDP):")
 	g.AddEdit("w150")
 	weeks_edit := g.AddUpDown("vWeeks Range0-180", 11)
 	days_edit.OnEvent("Change", (*) => check_state_date())
@@ -279,22 +279,13 @@ bCalculator() {
 	}
 
 	check_state_garantpost(edit, *) {
-		if edit.Value != ""
-			button.Enabled := 1
-		else
-			button.Enabled := 0
+			button.Enabled := edit.Value != "" ? 1 : 0
 	}
 	check_state_ammira(edit, *) {
-		if edit.Value != ""
-			button_ammira.Enabled := 1
-		else
-			button_ammira.Enabled := 0
+			button_ammira.Enabled := edit.Value != "" ? 1 : 0
 	}
 	check_state_date(*) {
-		if (weeks_edit.Value != "" or days_edit.Value != "")
-			date_button.Enabled := 1
-		else
-			date_button.Enabled := 0
+			date_button.Enabled := (weeks_edit.Value != "" or days_edit.Value != "") ? 1 : 0
 	}
 
 	switch_radio(calculationMode, *) {
@@ -398,36 +389,26 @@ bCalculator() {
 			tariff := 3
 		else if weight <= 1
 			tariff := 4
-		else if weight > 1 and weight < 32 {
+		else if weight > 1 {
 			tariff := 4
-			markup := 5
-			countStart := 1
+			markup := destination = 2 and weight > 32 ? "****" : 5 ; если СПб и больше 32 кг
 		}
-		else if weight = 32
-			tariff := 6
-		else if weight > 32 {
-			tariff := 6
-			markup := 7
-			countStart := 32
-		}
-		else
-			MsgBox("Some error - the weight is " weight)
 
 		; Calculate price
 		if !IsSet(markup)
 			price := tariffs[destination][tariff]
 		else {
-			if tariffs[destination][markup] = "****"
+			if markup = "****"
 				price := "****"
 			else
-				price := tariffs[destination][tariff] + ((weight - countStart) * tariffs[destination][markup])
+				price := tariffs[destination][tariff] + ((weight - 1) * tariffs[destination][markup])
 		}
 		
-		costs := [price, convert_price(price, EUR_rate), convert_price(price, CHF_rate), convert_price(price, USD_rate), convert_price(price, CNY_rate)]
-		title := Format("Стоимость доставки {1} кг в {2}", weight, tariffs[destination][1])
-		if price != "****"
+		if price != "****" {
+			costs := [price, convert_price(price, EUR_rate), convert_price(price, CHF_rate), convert_price(price, USD_rate), convert_price(price, CNY_rate)]
+			title := Format("Стоимость доставки {1} кг в {2}", weight, tariffs[destination][1])
 			DeliveryCosts(title, costs*)
-		else {
+		} else {
 			Result := MsgBox(Format("К сожалению, для отправлений в {1} свыше 32 кг действует специальный тариф с применением регрессивной шкалы за каждый следующий кг, поэтому надо пересчитывать на сайте. `nОткрыть калькулятор на сайте?", tariffs[destination][1]), Format("Отправка в {}", tariffs[destination][1]), "YesNo")
 			if Result = "Yes"
 				Run("https://garantpost.ru/tools")
