@@ -2,28 +2,21 @@
 #Requires AutoHotkey v2.0-a
 #Include <tariffs_2024>
 #Include <DeliveryCosts>
-#Include <AHKv2_Scripts\Info>
-#Include <bLib\CBR2>
-#Include <bLib\SpellSum>
+#Include <Info>
+#Include <CBR2>
+#Include <SpellSum>
 bCalculator() {
 
-	initial_rates := CBR2()
-	date_rate := initial_rates.Date
-	EUR_rate := initial_rates.Currency["EUR"]
-	CHF_rate := initial_rates.Currency["CHF"]
-	USD_rate := initial_rates.Currency["USD"]
-	CNY_rate := initial_rates.Currency["CNY"]
-
 	order_condition := 1
-	set_order_condition(Int, *) {
+	SetOrderCondition(Int, *) {
 		order_condition := Int
 		Info(Int)
 	}
 
 	g := Gui()
 	g.Opt("AlwaysOnTop ToolWindow")
-	g.OnEvent("Escape", (*) => close_gui())
-	g.OnEvent("Close", (*) => close_gui())
+	g.OnEvent("Escape", (*) => CloseGui())
+	g.OnEvent("Close", (*) => CloseGui())
 	g.Title := "Калькулятор доставки 2024"
 	Tab3 := g.Add("Tab3", "vTab3", ["Гарантпост", "Аммира", "Даты", "Для ДС", "Сумма прописью"])
 	garantpostList := []
@@ -37,44 +30,43 @@ bCalculator() {
 	edit_weight.OnEvent("Change", ObjBindMethod(check_state_garantpost, "Call", edit_weight))
 	Tab3.UseTab()
 	g.AddText(, "Курсы на")
-	calendar_date := convert_date(date_rate)
-	gDate := g.AddDateTime("yp w108 vCBRDate " . calendar_date, "dd.MM.yyyy")
-	gDate.OnEvent("Change", (*) => click_update_rates())
+	calendar_date := "Choose" . FormatTime(A_Now, "yyyyMMdd")
+	g.AddDateTime("yp w108 vCBRDate " . calendar_date, "dd.MM.yyyy").OnEvent("Change", (*) => UpdateRates())
+	; g["CBRDate"]
 
-	tEUR := g.AddText("r1 w22 xm", "EUR")
-	EUR := g.AddEdit("ReadOnly r1 w55 yp", EUR_rate)
-	tCHF := g.AddText("r1 w22 yp", "CHF")
-	CHF := g.AddEdit("ReadOnly r1 w55 yp", CHF_rate)
-	tUSD := g.AddText("r1 w22 xm", "USD")
-	USD := g.AddEdit("ReadOnly r1 w55 yp", USD_rate)
-	tCNY := g.AddText("r1 w22 yp", "CNY")
-	CNY := g.AddEdit("ReadOnly r1 w55 yp", CNY_rate)
-	tEUR.OnEvent("DoubleClick", copyText.Bind(EUR))
-	tCHF.OnEvent("DoubleClick", copyText.Bind(CHF))
-	tUSD.OnEvent("DoubleClick", copyText.Bind(USD))
-	tCNY.OnEvent("DoubleClick", copyText.Bind(CNY))
-	proof_check := g.AddLink("xm", Format('Проверить курс на <a href="https://www.cbr.ru/currency_base/daily/?UniDbQuery.Posted=True&UniDbQuery.To={1}">сайте</a> ЦБ РФ', date_rate))
+	; Currencies grid
+	g.AddText("vtEUR r1 w22 xm", "EUR")
+	g.AddEdit("veEUR ReadOnly r1 w55 yp")
+	g.AddText("vtCHF r1 w22 yp", "CHF")
+	g.AddEdit("veCHF ReadOnly r1 w55 yp")
+	g.AddText("vtUSD r1 w22 xm", "USD")
+	g.AddEdit("veUSD ReadOnly r1 w55 yp")
+	g.AddText("vtCNY r1 w22 yp", "CNY")
+	g.AddEdit("veCNY ReadOnly r1 w55 yp")
+	g["tEUR"].OnEvent("DoubleClick", (*) => Info(g["eEUR"].Text))
+	g["tCHF"].OnEvent("DoubleClick", (*) => Info(g["eCHF"].Text))
+	g["tUSD"].OnEvent("DoubleClick", (*) => Info(g["eUSD"].Text))
+	g["tCNY"].OnEvent("DoubleClick", (*) => Info(g["eCNY"].Text))
+	g.AddLink("xm r1 w180 vCBRLink")
 
-	convert_date(date) {
+	ConvertDate(date) {
 		input := StrSplit(date, ".")
 		output := "Choose" . input[3] . input[2] . input[1]
 		return output
 	}
-	update_rates(date?) {
-		if IsSet(date) = false
-			date := "24.08.2022"
-		new_rates := CBR2(date)
-		date_rate := new_rates.date
-		EUR.Text := EUR_rate := new_rates.Currency["EUR"]
-		CHF.Text := CHF_rate := new_rates.Currency["CHF"]
-		USD.Text := USD_rate := new_rates.Currency["USD"]
-		CNY.Text := CNY_rate := new_rates.Currency["CNY"]
-		gDate.Value := StrSplit(date_rate, ".")[3] . StrSplit(date_rate, ".")[2] . StrSplit(date_rate, ".")[1]
-	}
-	click_update_rates(*) {
-		new_date := FormatTime(g.Submit(false).CBRDate, "dd.MM.yyyy")
-		Sleep(500)
-		update_rates(new_date)
+
+	UpdateRates()
+	UpdateRates(date?) {
+		if !IsSet(date)
+			date := FormatTime(g.Submit(false).CBRDate, "dd.MM.yyyy")
+		NewRates := CBR2(date)
+		date_rate := NewRates.date
+		g["eEUR"].Value := NewRates.Currency["EUR"]
+		g["eCHF"].Value := NewRates.Currency["CHF"]
+		g["eUSD"].Text := NewRates.Currency["USD"]
+		g["eCNY"].Text := NewRates.Currency["CNY"]
+		g["CBRDate"].Value := StrSplit(date_rate, ".")[3] . StrSplit(date_rate, ".")[2] . StrSplit(date_rate, ".")[1]
+		g["CBRLink"].Text := Format('Проверить курс на <a href="https://www.cbr.ru/currency_base/daily/?UniDbQuery.Posted=True&UniDbQuery.To={1}">сайте</a> ЦБ РФ', date_rate)
 	}
 
 	Tab3.UseTab("Аммира")
@@ -110,9 +102,9 @@ bCalculator() {
 	r1 := g.AddRadio("vcondition_group Checked", "От аванса")
 	r2 := g.AddRadio("", "От подписания")
 	r3 := g.AddRadio("", "От размещения заказа")
-	r1.OnEvent("Click", set_order_condition.Bind(1))
-	r2.OnEvent("Click", set_order_condition.Bind(2))
-	r3.OnEvent("Click", set_order_condition.Bind(3))
+	r1.OnEvent("Click", SetOrderCondition.Bind(1))
+	r2.OnEvent("Click", SetOrderCondition.Bind(2))
+	r3.OnEvent("Click", SetOrderCondition.Bind(3))
 	date_button := g.AddButton("w150 Default", "Рассчитать")
 	date_button.OnEvent("Click", (*) => when_clicked())
 	g.AddGroupBox("w150 h60", "Сроки поставки")
@@ -272,7 +264,7 @@ bCalculator() {
 		
 		price := ammira[destination][tariff]
 
-		costs := [price, convert_price(price, EUR_rate), convert_price(price, CHF_rate), convert_price(price, USD_rate), convert_price(price, CNY_rate)]
+		costs := [price, convert_price(price, g["eEUR"].Value), convert_price(price, g["eCHF"].Value), convert_price(price, g["eUSD"].Value), convert_price(price, g["eCNY"].Value)]
 		title := Format("Стоимость доставки {1} кг в {2}", weight, destination)
 		DeliveryCosts(title, costs*)
 		; MsgBox(Format("{1} рублей`n`nПри пересчёте в валюту:`n{2} евро`n{3} франков`n{4} долларов`n{5} юаней", price, convertPrice(price, EUR_rate), convertPrice(price, CHF_rate), convertPrice(price, USD_rate), convertPrice(price, CNY_rate)), "Стоимость доставки " weight " кг в " destination, "0x40")
@@ -302,7 +294,7 @@ bCalculator() {
 			ControlSetText("+/- недель(DDP):", text_weeks)
 			days_edit.Value := 1
 			weeks_edit.Value := 11
-			set_order_condition(g.Submit(0).condition_group)
+			SetOrderCondition(g.Submit(0).condition_group)
 			r1.Enabled := 1
 			r2.Enabled := 1
 			r3.Enabled := 1
@@ -313,7 +305,7 @@ bCalculator() {
 			ControlSetText("Общий срок поставки:", text_weeks)
 			days_edit.Value := 11
 			weeks_edit.Value := 12
-			set_order_condition(0)
+			SetOrderCondition(0)
 			r1.Enabled := 0
 			r2.Enabled := 0
 			r3.Enabled := 0
@@ -405,7 +397,7 @@ bCalculator() {
 		}
 		
 		if price != "****" {
-			costs := [price, convert_price(price, EUR_rate), convert_price(price, CHF_rate), convert_price(price, USD_rate), convert_price(price, CNY_rate)]
+			costs := [price, convert_price(price, g["eEUR"].Value), convert_price(price, g["eCHF"].Value), convert_price(price, g["eUSD"].Value), convert_price(price, g["eCNY"].Value)]
 			title := Format("Стоимость доставки {1} кг в {2}", weight, tariffs[destination][1])
 			DeliveryCosts(title, costs*)
 		} else {
@@ -417,7 +409,7 @@ bCalculator() {
 		}
 	}
 
-	close_gui() {
+	CloseGui() {
 		g.Destroy()
 		Exit()
 	}

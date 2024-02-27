@@ -1,4 +1,4 @@
-﻿#Include <AHKv2_Scripts\Info>
+﻿#Include <Info>
 Class DeliveryCosts {
 
     __New(Title, CostRUB, CostEUR, CostCHF, CostUSD, CostCNY) {
