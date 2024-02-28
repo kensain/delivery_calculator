@@ -32,6 +32,7 @@ Class DeliveryCosts {
         CopyText(Text) {
             A_Clipboard := RegExReplace(Text, " .*")
             Info(Format("Стоимость '{}' скопирована!", A_Clipboard))
+            gCosts.Destroy()
         }
     }
 }
