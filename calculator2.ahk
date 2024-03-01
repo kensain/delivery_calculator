@@ -19,16 +19,21 @@ bCalculator() {
 	g.OnEvent("Close", (*) => __CloseGui())
 	g.Title := "Калькулятор доставки 2024"
 
-	Tab3 := g.Add("Tab3", "vTab3", ["Гарантпост", "Аммира", "Даты", "Для ДС", "Сумма прописью"])
+	Tab3 := g.Add("Tab3", "vTab3", ["Гарантпост", "Аммира", "Даты", "Сумма прописью"])
+	; [Оставить для возможного возврата вкладки "Для ДС" в будущем]{
+		; Tab3 := g.Add("Tab3", "vTab3", ["Гарантпост", "Аммира", "Даты", "Для ДС", "Сумма прописью"])
+	; }
+
 	garantpostList := []
-	for each in tariffs
+	for each in GARANTPOST
 		garantpostList.Push(each[1])
 	g.AddListBox("r20 vGarantpostChoice Choose1 w150 AltSubmit", garantpostList)
 	g.AddText(, "Вес в КГ:")
 	g.AddEdit("r1 vWeight w150 Number")
 	g.AddButton("vButtonGarant Default w150 Disabled", "OK")
 	g["ButtonGarant"].OnEvent("Click", button_event)
-	g["Weight"].OnEvent("Change", (*) => CheckStateGarantpost(g["Weight"]))
+	g["Weight"].OnEvent("Change", (*) => __CheckState("ButtonGarant", "Weight"))
+	; g["Weight"].OnEvent("Change", (*) => CheckStateGarantpost(g["Weight"]))
 	Tab3.UseTab()
 	g.AddText(, "Курсы на")
 	CalendarDate := "Choose" . FormatTime(A_Now, "yyyyMMdd")
@@ -67,10 +72,10 @@ bCalculator() {
 	; [Вкладка Аммира] {
 	Tab3.UseTab("Аммира")
 	ammira_list := []
-	if ammira.Count = 0
+	if AMMIRA.Count = 0
 		ammira_list.Push("Coming soon!")
 	else
-		for key, value in ammira
+		for key, value in AMMIRA
 			ammira_list.Push(key)
 	g.AddListBox("r20 vAmmiraChoice Choose1 w150", ammira_list)
 	g.AddText(, "Вес в КГ:")
@@ -108,48 +113,48 @@ bCalculator() {
 		Days: ""
 	}
 	; }
-
-	Tab3.UseTab("Для ДС")
-	g.AddText(, "Точка отсчёта")
-	g.AddDateTime("vAddStart w150", "dd.MM.yyyy")
-	g.AddText(, "Изначальный срок (нед.)")
-	g.AddEdit("w150")
-	g.AddUpDown("vOrigTime Range0-180", 1)
-	g.AddText(, "Новая дата готовности")
-	g.AddDateTime("vNewBuzDate w150", "dd.MM.yyyy")
-	g.AddText(, "Недель от BUZ до клиента:")
-	g.AddEdit("w150")
-	g.AddUpDown("vFcaDdp Range0-180", 11)
-	g.AddButton("w150 Default", "Рассчитать").OnEvent("Click", (*) => add_click())
-	g.AddGroupBox("w150 h130", "Новый срок поставки")
-	g.AddText("vNewDate xp+5 yp+20 w125")
-	g["NewDate"].OnEvent("DoubleClick", CopyText.Bind("NewDate"))
-	g.AddText("vNewDateWeeks w125")
-	g["NewDateWeeks"].OnEvent("DoubleClick", CopyText.Bind("NewDateWeeks"))
+; [Оставить на будущее] {
+; 	Tab3.UseTab("Для ДС")
+; 	g.AddText(, "Точка отсчёта")
+; 	g.AddDateTime("vAddStart w150", "dd.MM.yyyy")
+; 	g.AddText(, "Изначальный срок (нед.)")
+; 	g.AddEdit("w150")
+; 	g.AddUpDown("vOrigTime Range0-180", 1)
+; 	g.AddText(, "Новая дата готовности")
+; 	g.AddDateTime("vNewBuzDate w150", "dd.MM.yyyy")
+; 	g.AddText(, "Недель от BUZ до клиента:")
+; 	g.AddEdit("w150")
+; 	g.AddUpDown("vFcaDdp Range0-180", 11)
+; 	g.AddButton("w150 Default", "Рассчитать").OnEvent("Click", (*) => add_click())
+; 	g.AddGroupBox("w150 h130", "Новый срок поставки")
+; 	g.AddText("vNewDate xp+5 yp+20 w125")
+; 	g["NewDate"].OnEvent("DoubleClick", CopyText.Bind("NewDate"))
+; 	g.AddText("vNewDateWeeks w125")
+; 	g["NewDateWeeks"].OnEvent("DoubleClick", CopyText.Bind("NewDateWeeks"))
 	
-	add_click() {
-		StartDate := g.Submit(0).AddStart
-		OriginalWeeks := g.Submit(0).OrigTime
-		NewBUZDate := g.Submit(0).NewBuzDate
-		FCADDPWeeks := g.Submit(0).FcaDdp
+; 	add_click() {
+; 		StartDate := g.Submit(0).AddStart
+; 		OriginalWeeks := g.Submit(0).OrigTime
+; 		NewBUZDate := g.Submit(0).NewBuzDate
+; 		FCADDPWeeks := g.Submit(0).FcaDdp
 		
-		; Первоначальный срок поставки (long date)
-		OriginalDeliveryDate := DateAdd(StartDate, OriginalWeeks*7, "Days")
-		; Первоначальный срок поставки (формат)
-		fOriginalDeliveryDate := FormatTime(OriginalDeliveryDate, "dd.MM.yyyy")
-		; Первоначальный срок поставки в неделях
-		OriginalDeliveryTimeWeeks := Integer(DateDiff(OriginalDeliveryDate, StartDate, "Days") / 7)
-		; Новый срок поставки (long date)
-		NewDDPDate := DateAdd(NewBUZDate, FCADDPWeeks*7, "Days")
-		; Новый срок поставки (формат)
-		fNewDDPDate := FormatTime(NewDDPDate, "dd.MM.yyyy")
-		NewDDPDateWeeks := Ceil(DateDiff(NewDDPDate, StartDate, "Days") / 7)
-		; MsgBox("Первоначальный срок поставки: " originalDeliveryDateF " (" originalDeliveryTimeWeeks " нед.)`nНовый срок поставки: " newDDPDateF " (" newDDPDateWeeks " нед.)")
+; 		; Первоначальный срок поставки (long date)
+; 		OriginalDeliveryDate := DateAdd(StartDate, OriginalWeeks*7, "Days")
+; 		; Первоначальный срок поставки (формат)
+; 		fOriginalDeliveryDate := FormatTime(OriginalDeliveryDate, "dd.MM.yyyy")
+; 		; Первоначальный срок поставки в неделях
+; 		OriginalDeliveryTimeWeeks := Integer(DateDiff(OriginalDeliveryDate, StartDate, "Days") / 7)
+; 		; Новый срок поставки (long date)
+; 		NewDDPDate := DateAdd(NewBUZDate, FCADDPWeeks*7, "Days")
+; 		; Новый срок поставки (формат)
+; 		fNewDDPDate := FormatTime(NewDDPDate, "dd.MM.yyyy")
+; 		NewDDPDateWeeks := Ceil(DateDiff(NewDDPDate, StartDate, "Days") / 7)
+; 		; MsgBox("Первоначальный срок поставки: " originalDeliveryDateF " (" originalDeliveryTimeWeeks " нед.)`nНовый срок поставки: " newDDPDateF " (" newDDPDateWeeks " нед.)")
 		
-		__UpdateText("NewDate", fNewDDPDate)
-		__UpdateText("NewDateWeeks", Format("{} недель", NewDDPDateWeeks))
-	}
-	
+; 		__UpdateText("NewDate", fNewDDPDate)
+; 		__UpdateText("NewDateWeeks", Format("{} недель", NewDDPDateWeeks))
+; 	}
+; 	}
 	Tab3.UseTab("Сумма прописью")
 	g.AddText(, "Сумма:")
 	g.AddEdit("r1 w150 vInputSum")
@@ -243,16 +248,19 @@ bCalculator() {
 			Exit()
 		}
 		
-		price := ammira[destination][tariff]
+		price := AMMIRA[destination][tariff]
 		
 		costs := [price, __FormatPrice(price, g["eEUR"].Value), __FormatPrice(price, g["eCHF"].Value), __FormatPrice(price, g["eUSD"].Value), __FormatPrice(price, g["eCNY"].Value)]
 		title := Format("Стоимость доставки {1} кг в {2}", weight, destination)
 		DeliveryCosts(title, costs*)
 	}
 	
+	__CheckState(vButton, vEdit) {
+		g[vButton].Enabled := g[vEdit].Value != "" ? 1 : 0
+	}
 	CheckStateGarantpost(edit, *) {
-			g["ButtonGarant"].Enabled := edit.Value != "" ? 1 : 0
-		}
+		g["ButtonGarant"].Enabled := edit.Value != "" ? 1 : 0
+	}
 	CheckStateAmmira(edit, *) {
 		g["ButtonAmmira"].Enabled := edit.Value != "" ? 1 : 0
 	}
@@ -362,20 +370,20 @@ bCalculator() {
 		
 		; Calculate price
 		if !IsSet(Markup)
-			Price := tariffs[Destination][Tariff]
+			Price := GARANTPOST[Destination][Tariff]
 		else {
 			if Markup = "****"
 				Price := "****"
 		else
-			Price := tariffs[Destination][Tariff] + ((Weight - 1) * tariffs[Destination][Markup])
+			Price := GARANTPOST[Destination][Tariff] + ((Weight - 1) * GARANTPOST[Destination][Markup])
 	}
 		
 	if Price != "****" {
 		Costs := [Price, __FormatPrice(Price, g["eEUR"].Value), __FormatPrice(Price, g["eCHF"].Value), __FormatPrice(Price, g["eUSD"].Value), __FormatPrice(Price, g["eCNY"].Value)]
-			Title := Format("Стоимость доставки {1} кг в {2}", Weight, tariffs[Destination][1])
+			Title := Format("Стоимость доставки {1} кг в {2}", Weight, GARANTPOST[Destination][1])
 			DeliveryCosts(Title, Costs*)
 		} else {
-			Result := MsgBox(Format("К сожалению, для отправлений в {1} свыше 32 кг действует специальный тариф с применением регрессивной шкалы за каждый следующий кг, поэтому надо пересчитывать на сайте. `nОткрыть калькулятор на сайте?", tariffs[Destination][1]), Format("Отправка в {}", tariffs[Destination][1]), "YesNo")
+			Result := MsgBox(Format("К сожалению, для отправлений в {1} свыше 32 кг действует специальный тариф с применением регрессивной шкалы за каждый следующий кг, поэтому надо пересчитывать на сайте. `nОткрыть калькулятор на сайте?", GARANTPOST[Destination][1]), Format("Отправка в {}", GARANTPOST[Destination][1]), "YesNo")
 			if Result = "Yes"
 				Run("https://garantpost.ru/tools")
 			else
