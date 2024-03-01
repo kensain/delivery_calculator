@@ -49,13 +49,7 @@ bCalculator() {
 	g["tCNY"].OnEvent("DoubleClick", (*) => Info(g["eCNY"].Text))
 	g.AddLink("xm r1 w180 vCBRLink")
 	; }
-
-	ConvertDate(date) {
-		input := StrSplit(date, ".")
-		output := "Choose" . input[3] . input[2] . input[1]
-		return output
-	}
-
+	
 	UpdateRates()
 	UpdateRates(date?) {
 		if !IsSet(date)
@@ -69,7 +63,7 @@ bCalculator() {
 		g["CBRDate"].Value := StrSplit(date_rate, ".")[3] . StrSplit(date_rate, ".")[2] . StrSplit(date_rate, ".")[1]
 		g["CBRLink"].Text := Format('Проверить курс на <a href="https://www.cbr.ru/currency_base/daily/?UniDbQuery.Posted=True&UniDbQuery.To={1}">сайте</a> ЦБ РФ', date_rate)
 	}
-
+	
 	; [Вкладка Аммира] {
 	Tab3.UseTab("Аммира")
 	ammira_list := []
@@ -85,7 +79,7 @@ bCalculator() {
 	; }
 
 	; [Вкладка "Даты"] {
-	Tab3.UseTab("Даты")
+		Tab3.UseTab("Даты")
 	g.AddRadio("vis_offer Checked1", "КП клиенту").OnEvent("Click", SwitchRadio.Bind("toOffer"))
 	g.AddRadio("vis_order Checked0", "Размещение заказа").OnEvent("Click", SwitchRadio.Bind("toOrder"))
 	g.AddText("vSourceDate r1", "Дата КП:")
@@ -132,13 +126,13 @@ bCalculator() {
 	g["NewDate"].OnEvent("DoubleClick", CopyText.Bind("NewDate"))
 	g.AddText("vNewDateWeeks w125")
 	g["NewDateWeeks"].OnEvent("DoubleClick", CopyText.Bind("NewDateWeeks"))
-
+	
 	add_click() {
 		StartDate := g.Submit(0).AddStart
 		OriginalWeeks := g.Submit(0).OrigTime
 		NewBUZDate := g.Submit(0).NewBuzDate
 		FCADDPWeeks := g.Submit(0).FcaDdp
-
+		
 		; Первоначальный срок поставки (long date)
 		OriginalDeliveryDate := DateAdd(StartDate, OriginalWeeks*7, "Days")
 		; Первоначальный срок поставки (формат)
@@ -151,11 +145,11 @@ bCalculator() {
 		fNewDDPDate := FormatTime(NewDDPDate, "dd.MM.yyyy")
 		NewDDPDateWeeks := Ceil(DateDiff(NewDDPDate, StartDate, "Days") / 7)
 		; MsgBox("Первоначальный срок поставки: " originalDeliveryDateF " (" originalDeliveryTimeWeeks " нед.)`nНовый срок поставки: " newDDPDateF " (" newDDPDateWeeks " нед.)")
-
+		
 		__UpdateText("NewDate", fNewDDPDate)
 		__UpdateText("NewDateWeeks", Format("{} недель", NewDDPDateWeeks))
 	}
-
+	
 	Tab3.UseTab("Сумма прописью")
 	g.AddText(, "Сумма:")
 	g.AddEdit("r1 w150 vInputSum")
@@ -168,7 +162,7 @@ bCalculator() {
 	g.AddDropDownList("x55 y140 r9 Choose9 w117 vTax", vat)
 	g.AddButton("x22 y168 w150", "Превратить в текст").OnEvent("Click", (*) => ClickSpell())
 	g.AddEdit("vOutputSum w150 r10 ReadOnly")
-
+	
 	ClickSpell() {
 		SpellObj := {
 			DigitSum: RegExReplace(g.Submit(0).InputSum, "[A-Za-z\s]*"),
@@ -195,14 +189,14 @@ bCalculator() {
 		}
 		__UpdateText("OutputSum", SpeltSum)
 	}
-
+	
 	Tab3.UseTab()
-
+	
 	/**
 	 * 
 	 * @param {String} Mode 'Date' or 'Rate'
 	 * @param {String} textToCopy Text to copy
-	 */
+	*/
 	CopyText(vControlName) {
 		if g[vControlName].Text = ""
 			return
@@ -227,7 +221,7 @@ bCalculator() {
 		
 		destination := g.Submit().AmmiraChoice
 		weight := g.Submit().WeightAmmira
-
+		
 		if weight <= 500
 			tariff := up_to_500kg
 		else if weight <= 1000
@@ -250,41 +244,41 @@ bCalculator() {
 		}
 		
 		price := ammira[destination][tariff]
-
+		
 		costs := [price, __FormatPrice(price, g["eEUR"].Value), __FormatPrice(price, g["eCHF"].Value), __FormatPrice(price, g["eUSD"].Value), __FormatPrice(price, g["eCNY"].Value)]
 		title := Format("Стоимость доставки {1} кг в {2}", weight, destination)
 		DeliveryCosts(title, costs*)
 	}
-
+	
 	CheckStateGarantpost(edit, *) {
 			g["ButtonGarant"].Enabled := edit.Value != "" ? 1 : 0
-	}
+		}
 	CheckStateAmmira(edit, *) {
-			g["ButtonAmmira"].Enabled := edit.Value != "" ? 1 : 0
+		g["ButtonAmmira"].Enabled := edit.Value != "" ? 1 : 0
 	}
 	CheckStateDate(*) {
 		g["DateButton"].Enabled := (g["Weeks"].Value != "" or g["Days"].Value != "") ? 1 : 0
 	}
-
+	
 	SwitchRadio(CalculationMode, *) {
 		switch CalculationMode {
 			case "toOffer":
 				Offer()
-			case "toOrder":
-				Order()
-		}
-		
-		Offer() {
-			__UpdateText("SourceDate", "Дата КП")
-			__UpdateText("DaysText", "+/- дней(EXW):")
-			__UpdateText("DDPWeeks", "+/- недель(DDP):")
-			__UpdateText("Days", 1)
-			__UpdateText("Weeks", 11)
-			SetOrderCondition(g.Submit(0).condition_group)
-			r1.Enabled := 1
-			r2.Enabled := 1
-			r3.Enabled := 1
-		}
+				case "toOrder":
+					Order()
+				}
+				
+				Offer() {
+					__UpdateText("SourceDate", "Дата КП")
+					__UpdateText("DaysText", "+/- дней(EXW):")
+					__UpdateText("DDPWeeks", "+/- недель(DDP):")
+					__UpdateText("Days", 1)
+					__UpdateText("Weeks", 11)
+					SetOrderCondition(g.Submit(0).condition_group)
+					r1.Enabled := 1
+					r2.Enabled := 1
+					r3.Enabled := 1
+				}
 		Order() {
 			__UpdateText("SourceDate", "Дата заказа")
 			__UpdateText("DaysText", "Недель от BUZ до клиента:")
@@ -298,34 +292,34 @@ bCalculator() {
 		}
 
 	}
-
+	
 	when_clicked() {
 		is_offer := g.Submit(0).is_offer
 		is_order := g.Submit(0).is_order
-
+		
 		; SetOrderCondition(g.Submit(0).condition_group)
-
+		
 		date.start_date := g.Submit(0).start_date
 		date.weeks := g.Submit(0).weeks
 		date.days := g.Submit(0).days
 		calculate()
-
+		
 		calculate() {
-
+			
 			NumberOfWeeks := date.weeks != "" ? Integer(date.weeks) * 7 : 0
 			NumberOfDays := date.days != "" ? Integer(date.days) : 0
-
+			
 			if is_offer = true
 				calculate_offer()
 			else if is_order = true
 				calculate_order()
-
+			
 			calculate_offer() {
 				DeliveryTime := (Ceil(NumberOfDays / 5) * 7) + NumberOfWeeks
 				CalculatedDate := DateAdd(date.start_date, DeliveryTime, "Days"), "dd.MM.yyyy" ;25.09.2023
 				DeliveryDate := FormatTime(DateAdd(date.start_date, DeliveryTime, "Days"), "dd.MM.yyyy") ;25.09.2023
 				DeliveryWeeks := Ceil(DateDiff(CalculatedDate, date.start_date, "Days") / 7)
-
+				
 				__UpdateText("ResultText1a", DeliveryDate)
 				__UpdateText("ResultText1b", DeliveryWeeks " недель")
 				__UpdateText("ResultText2a")
@@ -349,11 +343,11 @@ bCalculator() {
 		}
 	}
 
-
+	
 	button_event(*) {
 		Destination := g.Submit().GarantpostChoice
 		Weight := g.Submit().Weight
-
+		
 		; Conditions:
 		if Weight <= 0.1
 			Tariff := 2
@@ -365,19 +359,19 @@ bCalculator() {
 			Tariff := 4
 			Markup := Destination = 2 and Weight > 32 ? "****" : 5 ; если СПб и больше 32 кг
 		}
-
+		
 		; Calculate price
 		if !IsSet(Markup)
 			Price := tariffs[Destination][Tariff]
 		else {
 			if Markup = "****"
 				Price := "****"
-			else
-				Price := tariffs[Destination][Tariff] + ((Weight - 1) * tariffs[Destination][Markup])
-		}
+		else
+			Price := tariffs[Destination][Tariff] + ((Weight - 1) * tariffs[Destination][Markup])
+	}
 		
-		if Price != "****" {
-			Costs := [Price, __FormatPrice(Price, g["eEUR"].Value), __FormatPrice(Price, g["eCHF"].Value), __FormatPrice(Price, g["eUSD"].Value), __FormatPrice(Price, g["eCNY"].Value)]
+	if Price != "****" {
+		Costs := [Price, __FormatPrice(Price, g["eEUR"].Value), __FormatPrice(Price, g["eCHF"].Value), __FormatPrice(Price, g["eUSD"].Value), __FormatPrice(Price, g["eCNY"].Value)]
 			Title := Format("Стоимость доставки {1} кг в {2}", Weight, tariffs[Destination][1])
 			DeliveryCosts(Title, Costs*)
 		} else {
@@ -405,10 +399,16 @@ bCalculator() {
 	__FormatPrice(Price, Currency) {
 		return __ToComma(Format("{:.2f}", Price / __ToDot(Currency)))
 	}
-
+	
 	__UpdateText(vControlName, NewText := "") {
 		g[vControlName].Value := NewText
 	}
 	g.Show()
+
+	__ConvertDate(date) {
+		input := StrSplit(date, ".")
+		output := "Choose" . input[3] . input[2] . input[1]
+		return output
+	}
 }
 bCalculator()
