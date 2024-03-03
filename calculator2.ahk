@@ -31,7 +31,7 @@ bCalculator() {
 	g.AddText(, "Вес в КГ:")
 	g.AddEdit("r1 vWeight w150 Number")
 	g.AddButton("vButtonGarant Default w150 Disabled", "OK")
-	g["ButtonGarant"].OnEvent("Click", button_event)
+	g["ButtonGarant"].OnEvent("Click", ClickEventGarantPost)
 	g["Weight"].OnEvent("Change", (*) => __CheckState("ButtonGarant", "Weight"))
 	; g["Weight"].OnEvent("Change", (*) => CheckStateGarantpost(g["Weight"]))
 	Tab3.UseTab()
@@ -56,37 +56,23 @@ bCalculator() {
 	; }
 	
 	UpdateRates()
-	UpdateRates(date?) {
-		if !IsSet(date)
-			date := FormatTime(g.Submit(false).CBRDate, "dd.MM.yyyy")
-		NewRates := CBR2(date)
-		date_rate := NewRates.date
-		g["eEUR"].Value := NewRates.Currency["EUR"]
-		g["eCHF"].Value := NewRates.Currency["CHF"]
-		g["eUSD"].Text := NewRates.Currency["USD"]
-		g["eCNY"].Text := NewRates.Currency["CNY"]
-		g["CBRDate"].Value := StrSplit(date_rate, ".")[3] . StrSplit(date_rate, ".")[2] . StrSplit(date_rate, ".")[1]
-		g["CBRLink"].Text := Format('Проверить курс на <a href="https://www.cbr.ru/currency_base/daily/?UniDbQuery.Posted=True&UniDbQuery.To={1}">сайте</a> ЦБ РФ', date_rate)
-	}
 	
 	; [Вкладка Аммира] {
 	Tab3.UseTab("Аммира")
-	ammira_list := []
-	if AMMIRA.Count = 0
-		ammira_list.Push("Coming soon!")
-	else
-		for key, value in AMMIRA
-			ammira_list.Push(key)
-	g.AddListBox("r20 vAmmiraChoice Choose1 w150", ammira_list)
+	AmmiraCities := []
+	for key, value in AMMIRA
+		AmmiraCities.Push(key)
+	g.AddListBox("r20 vAmmiraChoice Choose1 w150", AmmiraCities)
 	g.AddText(, "Вес в КГ:")
-	g.AddEdit("r1 vWeightAmmira w150 Number").OnEvent("Change", (*) => CheckStateAmmira(g["WeightAmmira"]))
-	g.AddButton("vButtonAmmira Default w150 Disabled", "OK").OnEvent("Click", button_ammira_event)
+	g.AddEdit("r1 vWeightAmmira w150 Number")
+	g["WeightAmmira"].OnEvent("Change", (*) => __CheckState("ButtonAmmira", "WeightAmmira"))
+	g.AddButton("vButtonAmmira Default w150 Disabled", "OK").OnEvent("Click", ClickEventAmmira)
 	; }
 
 	; [Вкладка "Даты"] {
 		Tab3.UseTab("Даты")
-	g.AddRadio("vis_offer Checked1", "КП клиенту").OnEvent("Click", SwitchRadio.Bind("toOffer"))
-	g.AddRadio("vis_order Checked0", "Размещение заказа").OnEvent("Click", SwitchRadio.Bind("toOrder"))
+	g.AddRadio("vIsOfferGroup Checked1", "КП клиенту").OnEvent("Click", SwitchRadio.Bind("toOffer"))
+	g.AddRadio("Checked0", "Размещение заказа").OnEvent("Click", SwitchRadio.Bind("toOrder"))
 	g.AddText("vSourceDate r1", "Дата КП:")
 	g.AddDateTime("yp-3 x75 vStart_Date w97", "dd.MM.yyyy")
 	g.AddText("vDaysText x22 y114 r1 w150", "+/- дней(EXW):")
@@ -95,13 +81,13 @@ bCalculator() {
 	g.AddText("r1 w150 vDDPweeks", "+/- недель(DDP):")
 	g.AddEdit("w150")
 	g.AddUpDown("vWeeks Range0-180", 11).OnEvent("Change", (*) => CheckStateDate())
-	r1 := g.AddRadio("vcondition_group Checked", "От аванса")
+	r1 := g.AddRadio("vConditionGroup Checked", "От аванса")
 	r2 := g.AddRadio("", "От подписания")
 	r3 := g.AddRadio("", "От размещения заказа")
 	r1.OnEvent("Click", (*) => SetOrderCondition(1))
 	r2.OnEvent("Click", (*) => SetOrderCondition(2))
 	r3.OnEvent("Click", (*) => SetOrderCondition(3))
-	g.AddButton("vDateButton w150 Default", "Рассчитать").OnEvent("Click", (*) => when_clicked())
+	g.AddButton("vDateButton w150 Default", "Рассчитать").OnEvent("Click", (*) => ClickEventDate())
 	g.AddGroupBox("w150 h60", "Сроки поставки")
 	g.AddText("vResultText1a xp+5 yp+17 w70")
 	g.AddText("vResultText1b x90 yp w70").OnEvent("DoubleClick", (*) => CopyText("ResultText1b"))
@@ -165,17 +151,17 @@ bCalculator() {
 	g.AddText("x22 y144 w100", "НДС:")
 	vat := [0, 7, 10, 12, 13, 15, 17, 18, 20]
 	g.AddDropDownList("x55 y140 r9 Choose9 w117 vTax", vat)
-	g.AddButton("x22 y168 w150", "Превратить в текст").OnEvent("Click", (*) => ClickSpell())
+	g.AddButton("x22 y168 w150", "Превратить в текст").OnEvent("Click", (*) => ClickEventSpell())
 	g.AddEdit("vOutputSum w150 r10 ReadOnly")
 	
-	ClickSpell() {
+	ClickEventSpell() {
 		SpellObj := {
 			DigitSum: RegExReplace(g.Submit(0).InputSum, "[A-Za-z\s]*"),
 			Currency: g.Submit(0).CurrencyRadioGroup,
 			VAT: g.Submit(0).Tax
 		}
 		if SpellObj.DigitSum = "" {
-			__UpdateText("OutputSum")
+			UpdateText("OutputSum")
 			return
 		}
 		switch SpellObj.Currency{
@@ -185,36 +171,20 @@ bCalculator() {
 			case 4: Currency := "USD"
 		}
 		SpeltSum := SpellSum(SpellObj.DigitSum, Currency, SpellObj.VAT)
-		if SpellObj.Currency = 4 {
+		; Т.к. сайт не поддерживает франки, пришлось делать через переименование долларов:
+		if SpellObj.Currency = 4 { 
 			SpeltSum := StrReplace(SpeltSum, "доллар", "франк")
 			SpeltSum := StrReplace(SpeltSum, "франкы", "франки")
 			SpeltSum := StrReplace(SpeltSum, "цент", "раппен")
 			SpeltSum := StrReplace(SpeltSum, "USD", "CHF")
 			SpeltSum := StrReplace(SpeltSum, " США")
 		}
-		__UpdateText("OutputSum", SpeltSum)
+		UpdateText("OutputSum", SpeltSum)
 	}
 	
 	Tab3.UseTab()
 	
-	/**
-	 * 
-	 * @param {String} Mode 'Date' or 'Rate'
-	 * @param {String} textToCopy Text to copy
-	*/
-	CopyText(vControlName) {
-		if g[vControlName].Text = ""
-			return
-		Conditions := Map(
-			1, "{1} с момента поступления авансового платежа на счет Поставщика.",
-			2, "{1} с момента подписания спецификации уполномоченными представителями Поставщика и Покупателя.",
-			3, "{1} с момента подписания заказа уполномоченными представителями Поставщика и Покупателя.",
-		)
-		A_Clipboard := OrderCondition != 0 ? Format(Conditions[OrderCondition], g[vControlName].Text) : g[vControlName].Text
-		Info(Format("Текст '{1}' скопирован!", A_Clipboard))
-	}
-	
-	button_ammira_event(*) {
+	ClickEventAmmira(*) {
 		up_to_500kg := 1
 		up_to_1t := 2
 		up_to_2t := 3
@@ -258,12 +228,6 @@ bCalculator() {
 	__CheckState(vButton, vEdit) {
 		g[vButton].Enabled := g[vEdit].Value != "" ? 1 : 0
 	}
-	CheckStateGarantpost(edit, *) {
-		g["ButtonGarant"].Enabled := edit.Value != "" ? 1 : 0
-	}
-	CheckStateAmmira(edit, *) {
-		g["ButtonAmmira"].Enabled := edit.Value != "" ? 1 : 0
-	}
 	CheckStateDate(*) {
 		g["DateButton"].Enabled := (g["Weeks"].Value != "" or g["Days"].Value != "") ? 1 : 0
 	}
@@ -276,23 +240,23 @@ bCalculator() {
 					Order()
 				}
 				
-				Offer() {
-					__UpdateText("SourceDate", "Дата КП")
-					__UpdateText("DaysText", "+/- дней(EXW):")
-					__UpdateText("DDPWeeks", "+/- недель(DDP):")
-					__UpdateText("Days", 1)
-					__UpdateText("Weeks", 11)
-					SetOrderCondition(g.Submit(0).condition_group)
-					r1.Enabled := 1
-					r2.Enabled := 1
-					r3.Enabled := 1
-				}
+		Offer() {
+			UpdateText("SourceDate", "Дата КП")
+			UpdateText("DaysText", "+/- дней(EXW):")
+			UpdateText("DDPWeeks", "+/- недель(DDP):")
+			UpdateText("Days", 1)
+			UpdateText("Weeks", 11)
+			SetOrderCondition(g.Submit(0).ConditionGroup)
+			r1.Enabled := 1
+			r2.Enabled := 1
+			r3.Enabled := 1
+		}
 		Order() {
-			__UpdateText("SourceDate", "Дата заказа")
-			__UpdateText("DaysText", "Недель от BUZ до клиента:")
-			__UpdateText("DDPWeeks", "Общий срок поставки:")
-			__UpdateText("Days", 11)
-			__UpdateText("Weeks", 12)
+			UpdateText("SourceDate", "Дата заказа")
+			UpdateText("DaysText", "Недель от BUZ до клиента:")
+			UpdateText("DDPWeeks", "Общий срок поставки:")
+			UpdateText("Days", 11)
+			UpdateText("Weeks", 12)
 			SetOrderCondition(0)
 			r1.Enabled := 0
 			r2.Enabled := 0
@@ -301,11 +265,11 @@ bCalculator() {
 
 	}
 	
-	when_clicked() {
-		is_offer := g.Submit(0).is_offer
-		is_order := g.Submit(0).is_order
+	ClickEventDate() {
+		IsOffer := g.Submit(0).IsOfferGroup
+		; IsOrder := g.Submit(0).IsOrder
 		
-		; SetOrderCondition(g.Submit(0).condition_group)
+		; SetOrderCondition(g.Submit(0).ConditionGroup)
 		
 		date.start_date := g.Submit(0).start_date
 		date.weeks := g.Submit(0).weeks
@@ -317,9 +281,9 @@ bCalculator() {
 			NumberOfWeeks := date.weeks != "" ? Integer(date.weeks) * 7 : 0
 			NumberOfDays := date.days != "" ? Integer(date.days) : 0
 			
-			if is_offer = true
+			if IsOffer = true
 				calculate_offer()
-			else if is_order = true
+			else if IsOrder = true
 				calculate_order()
 			
 			calculate_offer() {
@@ -328,10 +292,10 @@ bCalculator() {
 				DeliveryDate := FormatTime(DateAdd(date.start_date, DeliveryTime, "Days"), "dd.MM.yyyy") ;25.09.2023
 				DeliveryWeeks := Ceil(DateDiff(CalculatedDate, date.start_date, "Days") / 7)
 				
-				__UpdateText("ResultText1a", DeliveryDate)
-				__UpdateText("ResultText1b", DeliveryWeeks " недель")
-				__UpdateText("ResultText2a")
-				__UpdateText("ResultText2b")
+				UpdateText("ResultText1a", DeliveryDate)
+				UpdateText("ResultText1b", DeliveryWeeks " недель")
+				UpdateText("ResultText2a")
+				UpdateText("ResultText2b")
 			}
 			
 			calculate_order() {
@@ -342,17 +306,17 @@ bCalculator() {
 				CalculationEXW := DateAdd(CalculationDDP, -CalculationFCA, "Days")
 				FCA := FormatTime(CalculationFCA, "dd.MM.yyyy")
 				DDP := FormatTime(CalculationDDP, "dd.MM.yyyy")
-				__UpdateText("ResultText1a", "Дата EXW:")
-				__UpdateText("ResultText1b", FCA)
-				__UpdateText("ResultText2a", "Дата DDP:")
-				__UpdateText("ResultText2b", DDP)
+				UpdateText("ResultText1a", "Дата EXW:")
+				UpdateText("ResultText1b", FCA)
+				UpdateText("ResultText2a", "Дата DDP:")
+				UpdateText("ResultText2b", DDP)
 			}
 
 		}
 	}
 
 	
-	button_event(*) {
+	ClickEventGarantPost(*) {
 		Destination := g.Submit().GarantpostChoice
 		Weight := g.Submit().Weight
 		
@@ -376,10 +340,16 @@ bCalculator() {
 				Price := "****"
 		else
 			Price := GARANTPOST[Destination][Tariff] + ((Weight - 1) * GARANTPOST[Destination][Markup])
-	}
+		}
 		
-	if Price != "****" {
-		Costs := [Price, __FormatPrice(Price, g["eEUR"].Value), __FormatPrice(Price, g["eCHF"].Value), __FormatPrice(Price, g["eUSD"].Value), __FormatPrice(Price, g["eCNY"].Value)]
+		if Price != "****" {
+			Costs := [
+				Price,
+				__FormatPrice(Price, g["eEUR"].Value),
+				__FormatPrice(Price, g["eCHF"].Value),
+				__FormatPrice(Price, g["eUSD"].Value),
+				__FormatPrice(Price, g["eCNY"].Value)
+			]
 			Title := Format("Стоимость доставки {1} кг в {2}", Weight, GARANTPOST[Destination][1])
 			DeliveryCosts(Title, Costs*)
 		} else {
@@ -408,15 +378,46 @@ bCalculator() {
 		return __ToComma(Format("{:.2f}", Price / __ToDot(Currency)))
 	}
 	
-	__UpdateText(vControlName, NewText := "") {
+	UpdateText(vControlName, NewText := "") {
 		g[vControlName].Value := NewText
 	}
-	g.Show()
-
+	
 	__ConvertDate(date) {
 		input := StrSplit(date, ".")
 		output := "Choose" . input[3] . input[2] . input[1]
 		return output
 	}
+
+	UpdateRates(date?) {
+		if !IsSet(date)
+			date := FormatTime(g.Submit(false).CBRDate, "dd.MM.yyyy")
+		NewRates := CBR2(date)
+		date_rate := NewRates.date
+		g["eEUR"].Value := NewRates.Currency["EUR"]
+		g["eCHF"].Value := NewRates.Currency["CHF"]
+		g["eUSD"].Text := NewRates.Currency["USD"]
+		g["eCNY"].Text := NewRates.Currency["CNY"]
+		g["CBRDate"].Value := StrSplit(date_rate, ".")[3] . StrSplit(date_rate, ".")[2] . StrSplit(date_rate, ".")[1]
+		g["CBRLink"].Text := Format('Проверить курс на <a href="https://www.cbr.ru/currency_base/daily/?UniDbQuery.Posted=True&UniDbQuery.To={1}">сайте</a> ЦБ РФ', date_rate)
+	}
+		
+	/**
+	 * 
+	 * @param {String} Mode 'Date' or 'Rate'
+	 * @param {String} textToCopy Text to copy
+	*/
+	CopyText(vControlName) {
+		if g[vControlName].Text = ""
+			return
+		Conditions := Map(
+			1, "{1} с момента поступления авансового платежа на счет Поставщика.",
+			2, "{1} с момента подписания спецификации уполномоченными представителями Поставщика и Покупателя.",
+			3, "{1} с момента подписания заказа уполномоченными представителями Поставщика и Покупателя.",
+		)
+		A_Clipboard := OrderCondition != 0 ? Format(Conditions[OrderCondition], g[vControlName].Text) : g[vControlName].Text
+		Info(Format("Текст '{1}' скопирован!", A_Clipboard))
+	}
+
+	g.Show()
 }
 bCalculator()
