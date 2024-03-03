@@ -33,7 +33,6 @@ bCalculator() {
 	g.AddButton("vButtonGarant Default w150 Disabled", "OK")
 	g["ButtonGarant"].OnEvent("Click", ClickEventGarantPost)
 	g["Weight"].OnEvent("Change", (*) => __CheckState("ButtonGarant", "Weight"))
-	; g["Weight"].OnEvent("Change", (*) => CheckStateGarantpost(g["Weight"]))
 	Tab3.UseTab()
 	g.AddText(, "Курсы на")
 	CalendarDate := "Choose" . FormatTime(A_Now, "yyyyMMdd")
@@ -74,7 +73,7 @@ bCalculator() {
 	g.AddRadio("vIsOfferGroup Checked1", "КП клиенту").OnEvent("Click", SwitchRadio.Bind("toOffer"))
 	g.AddRadio("Checked0", "Размещение заказа").OnEvent("Click", SwitchRadio.Bind("toOrder"))
 	g.AddText("vSourceDate r1", "Дата КП:")
-	g.AddDateTime("yp-3 x75 vStart_Date w97", "dd.MM.yyyy")
+	g.AddDateTime("yp-3 x75 vStartDate w97", "dd.MM.yyyy")
 	g.AddText("vDaysText x22 y114 r1 w150", "+/- дней(EXW):")
 	g.AddEdit("w150")
 	g.AddUpDown("vDays Range0-180", 1).OnEvent("Change", (*) => CheckStateDate())
@@ -93,11 +92,7 @@ bCalculator() {
 	g.AddText("vResultText1b x90 yp w70").OnEvent("DoubleClick", (*) => CopyText("ResultText1b"))
 	g.AddText("vResultText2a x27 yp+20 w70")
 	g.AddText("vResultText2b x90 yp w70").OnEvent("DoubleClick", (*) => CopyText("ResultText2b"))
-	date := {
-		StartDate: "",
-		Weeks: "",
-		Days: ""
-	}
+	; }
 	; }
 ; [Оставить на будущее] {
 ; 	Tab3.UseTab("Для ДС")
@@ -266,53 +261,40 @@ bCalculator() {
 	}
 	
 	ClickEventDate() {
-		IsOffer := g.Submit(0).IsOfferGroup
-		; IsOrder := g.Submit(0).IsOrder
-		
-		; SetOrderCondition(g.Submit(0).ConditionGroup)
-		
-		date.start_date := g.Submit(0).start_date
-		date.weeks := g.Submit(0).weeks
-		date.days := g.Submit(0).days
-		calculate()
-		
-		calculate() {
-			
-			NumberOfWeeks := date.weeks != "" ? Integer(date.weeks) * 7 : 0
-			NumberOfDays := date.days != "" ? Integer(date.days) : 0
-			
-			if IsOffer = true
-				calculate_offer()
-			else if IsOrder = true
-				calculate_order()
-			
-			calculate_offer() {
-				DeliveryTime := (Ceil(NumberOfDays / 5) * 7) + NumberOfWeeks
-				CalculatedDate := DateAdd(date.start_date, DeliveryTime, "Days"), "dd.MM.yyyy" ;25.09.2023
-				DeliveryDate := FormatTime(DateAdd(date.start_date, DeliveryTime, "Days"), "dd.MM.yyyy") ;25.09.2023
-				DeliveryWeeks := Ceil(DateDiff(CalculatedDate, date.start_date, "Days") / 7)
-				
-				UpdateText("ResultText1a", DeliveryDate)
-				UpdateText("ResultText1b", DeliveryWeeks " недель")
-				UpdateText("ResultText2a")
-				UpdateText("ResultText2b")
-			}
-			
-			calculate_order() {
-				WeeksToRussia := NumberOfDays * 7
-				WeeksTotal := NumberOfWeeks
-				CalculationDDP := DateAdd(date.start_date, WeeksTotal, "Days")
-				CalculationFCA := DateAdd(CalculationDDP, -WeeksToRussia, "Days")
-				CalculationEXW := DateAdd(CalculationDDP, -CalculationFCA, "Days")
-				FCA := FormatTime(CalculationFCA, "dd.MM.yyyy")
-				DDP := FormatTime(CalculationDDP, "dd.MM.yyyy")
-				UpdateText("ResultText1a", "Дата EXW:")
-				UpdateText("ResultText1b", FCA)
-				UpdateText("ResultText2a", "Дата DDP:")
-				UpdateText("ResultText2b", DDP)
-			}
 
+		Date := {
+			StartDate: g.Submit(0).StartDate,
+			Weeks: g.Submit(0).weeks,
+			Days: g.Submit(0).days
 		}
+		
+		NumberOfWeeks := Date.Weeks != "" ? Integer(Date.Weeks) * 7 : 0
+		NumberOfDays := Date.Days != "" ? Integer(Date.Days) : 0
+		
+		if g.Submit(0).IsOfferGroup = 1 {
+			DeliveryTime := (Ceil(NumberOfDays / 5) * 7) + NumberOfWeeks
+			CalculatedDate := DateAdd(Date.StartDate, DeliveryTime, "Days"), "dd.MM.yyyy"
+			DeliveryDate := FormatTime(DateAdd(Date.StartDate, DeliveryTime, "Days"), "dd.MM.yyyy")
+			DeliveryWeeks := Ceil(DateDiff(CalculatedDate, Date.StartDate, "Days") / 7)
+			
+			UpdateText("ResultText1a", DeliveryDate)
+			UpdateText("ResultText1b", DeliveryWeeks " недель")
+			UpdateText("ResultText2a")
+			UpdateText("ResultText2b")
+		} else {
+			WeeksToRussia := NumberOfDays * 7
+			WeeksTotal := NumberOfWeeks
+			CalculationDDP := DateAdd(Date.StartDate, WeeksTotal, "Days")
+			CalculationFCA := DateAdd(CalculationDDP, -WeeksToRussia, "Days")
+			CalculationEXW := DateAdd(CalculationDDP, -CalculationFCA, "Days")
+			FCA := FormatTime(CalculationFCA, "dd.MM.yyyy")
+			DDP := FormatTime(CalculationDDP, "dd.MM.yyyy")
+			UpdateText("ResultText1a", "Дата EXW:")
+			UpdateText("ResultText1b", FCA)
+			UpdateText("ResultText2a", "Дата DDP:")
+			UpdateText("ResultText2b", DDP)
+		}
+
 	}
 
 	
@@ -420,4 +402,3 @@ bCalculator() {
 
 	g.Show()
 }
-bCalculator()
