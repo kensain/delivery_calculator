@@ -361,54 +361,113 @@ bCalculator() {
 
 	}
 
+	WriteToAmmira(Weight := "") {
+		g := Gui()
+		g.Title := "Письмо в Аммиру"
+		g.Opt("ToolWindow AlwaysOnTop")
+		g.AddText(, "Габариты (размер или объём)")
+		g.AddEdit("r1 vDims")
+		g.AddText(, "Вес:")
+		g.AddEdit("r1 vWeight w40", Weight)
+		g.AddText(, "Клиент:")
+		g.AddEdit("r1 vCustomer")
+		g.AddText(, "Адрес клиента:")
+		g.AddEdit("r3 vAddress")
+		button := g.AddButton("Default w80", "OK")
+		g.OnEvent("Escape", (*) => CloseGui())
+		g.OnEvent("Close", (*) => CloseGui())
+		button.OnEvent("Click", (*) => WhenClicked())
+		g.Show()
+		Data := {
+			Dimensions: "",
+			CustomerName: "",
+			CustomerAddress: "",
+			Weight: ""
+		}
 	
+		WhenClicked() {
+			gSub := g.Submit()
+			Data.Dimensions := gSub.Dims = "" ? "____" : gSub.Dims
+			Data.CustomerName := gSub.Customer = "" ? "____" : gSub.Customer
+			Data.CustomerAddress := gSub.Address = "" ? "____" : gSub.Address
+			Data.Weight := gSub.Weight = "" ? "____" : gSub.Weight
+	
+			WriteMail()
+		}
+	
+		CloseGui() {
+			g.Destroy()
+			Exit()
+		}
+	
+		WriteMail() {
+			; signature := "`n`nС уважением,`n`nПортнов Максим`nМенеджер по работе с клиентами`n`nООО «Бюлер Сервис»`nул. Отрадная, д. 2Б, стр. 1,`n127273 Москва, Россия`nТел.:  +7 495 139 34 00 (доб.162)`nМоб.:  +7 916 420 79 60`n`nmaxim.portnov@buhlergroup.com`nwww.buhlergroup.com"
+			
+			Outlook := ComObjActive("Outlook.Application")
+			email := Outlook.CreateItem(0)
+			email.BodyFormat := 1 ; olFormatHTML
+			email.Subject := "Расчёт доставки // " Data.CustomerName
+			mailText := "Здравствуйте, Фёдор,`n`nпрошу рассчитать стоимость доставки до клиента " Data.CustomerName ".`n`nАдрес доставки: " Data.CustomerAddress "."
+			; if Data.dimensions != ""
+				mailText .= "`nГабариты: " Data.Dimensions ", вес: " Data.Weight " кг."
+			; mailText .= signature
+			email.Body := mailText
+			email.To := "tk.ammira@gmail.com"
+			;email.CC := "bgoodman@vip-logistics.ru; nikolai.lovyagin@buhlergroup.com"
+			email.Display()
+			Outlook := ""
+		}
+	}
+
 	ClickEventGarantPost(*) {
 		Destination := g.Submit().GarantpostChoice
 		Weight := g.Submit().Weight
 
 		if g.Submit().BlockCertainRegions {
-			if BLOCKED_REGIONS.Has(GARANTPOST[Destination][1])
-				MsgBox(BLOCKED_REGIONS[GARANTPOST[Destination][1]])
-		}
-		
-		; Conditions:
-		if Weight <= 0.1
-			Tariff := 2
-		else if Weight <= 0.5
-			Tariff := 3
-		else if Weight <= 1
-			Tariff := 4
-		else if Weight > 1 {
-			Tariff := 4
-			Markup := Destination = 2 and Weight > 32 ? "****" : 5 ; если СПб и больше 32 кг
-		}
-		
-		; Calculate price
-		if !IsSet(Markup)
-			Price := GARANTPOST[Destination][Tariff]
-		else {
-			if Markup = "****"
-				Price := "****"
-		else
-			Price := GARANTPOST[Destination][Tariff] + ((Weight - 1) * GARANTPOST[Destination][Markup])
-		}
-		
-		if Price != "****" {
-			Costs := [
-				Price,
-				__FormatPrice(Price, g["eEUR"].Value),
-				__FormatPrice(Price, g["eCHF"].Value),
-				__FormatPrice(Price, g["eUSD"].Value),
-				__FormatPrice(Price, g["eCNY"].Value)
-			]
-			Title := Format("Стоимость доставки {1} кг в {2}", Weight, GARANTPOST[Destination][1])
-			DeliveryCosts(Title, Costs*)
+			if BLOCKED_REGIONS.Has(GARANTPOST[Destination][1]) {
+				if MsgBox(BLOCKED_REGIONS[GARANTPOST[Destination][1]] "`n`nПодготовить письмо?",, "0x30 0x4") = "Yes"
+					WriteToAmmira(Weight)
+			}
 		} else {
-			Result := MsgBox(Format("К сожалению, для отправлений в {1} свыше 32 кг действует специальный тариф с применением регрессивной шкалы за каждый следующий кг, поэтому надо пересчитывать на сайте. `nОткрыть калькулятор на сайте?", GARANTPOST[Destination][1]), Format("Отправка в {}", GARANTPOST[Destination][1]), "YesNo")
-			if Result = "Yes"
-				Run("https://garantpost.ru/tools")
+			; Conditions:
+			if Weight <= 0.1
+				Tariff := 2
+			else if Weight <= 0.5
+				Tariff := 3
+			else if Weight <= 1
+				Tariff := 4
+			else if Weight > 1 {
+				Tariff := 4
+				Markup := Destination = 2 and Weight > 32 ? "****" : 5 ; если СПб и больше 32 кг
+			}
+			
+			; Calculate price
+			if !IsSet(Markup)
+				Price := GARANTPOST[Destination][Tariff]
+			else {
+				if Markup = "****"
+					Price := "****"
 			else
-				return
+				Price := GARANTPOST[Destination][Tariff] + ((Weight - 1) * GARANTPOST[Destination][Markup])
+			}
+			
+			if Price != "****" {
+				Costs := [
+					Price,
+					__FormatPrice(Price, g["eEUR"].Value),
+					__FormatPrice(Price, g["eCHF"].Value),
+					__FormatPrice(Price, g["eUSD"].Value),
+					__FormatPrice(Price, g["eCNY"].Value)
+				]
+				Title := Format("Стоимость доставки {1} кг в {2}", Weight, GARANTPOST[Destination][1])
+				DeliveryCosts(Title, Costs*)
+			} else {
+				Result := MsgBox(Format("К сожалению, для отправлений в {1} свыше 32 кг действует специальный тариф с применением регрессивной шкалы за каждый следующий кг, поэтому надо пересчитывать на сайте. `nОткрыть калькулятор на сайте?", GARANTPOST[Destination][1]), Format("Отправка в {}", GARANTPOST[Destination][1]), "YesNo")
+				if Result = "Yes"
+					Run("https://garantpost.ru/tools")
+				else
+					return
+			}
 		}
 	}
 
