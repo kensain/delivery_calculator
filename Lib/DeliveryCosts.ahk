@@ -1,4 +1,4 @@
-﻿#Include <Info>
+﻿#Include ./Info.ahk
 Class DeliveryCosts {
     __New(Title, CostRUB, CostEUR, CostCHF, CostUSD, CostCNY) {
         gCosts := Gui()

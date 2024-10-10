@@ -5,6 +5,7 @@
 #Include <Info>
 #Include <CBR2>
 #Include <SpellSum>
+
 bCalculator() {
 
 	OrderCondition := 1
@@ -19,7 +20,7 @@ bCalculator() {
 	g.OnEvent("Close", (*) => __CloseGui())
 	g.Title := "Калькулятор доставки 2024"
 
-	Tab3 := g.Add("Tab3", "vTab3", ["Гарантпост", "Аммира", "Даты", "Сумма прописью"])
+	Tab3 := g.Add("Tab3", "vTab3", ["Гарантпост", "Аммира", "Даты", "Сумма прописью", "Международная доставка"])
 	; [Оставить для возможного возврата вкладки "Для ДС" в будущем]{
 		; Tab3 := g.Add("Tab3", "vTab3", ["Гарантпост", "Аммира", "Даты", "Для ДС", "Сумма прописью"])
 	; }
@@ -69,12 +70,12 @@ bCalculator() {
 	; }
 
 	; [Вкладка "Даты"] {
-		Tab3.UseTab("Даты")
+	Tab3.UseTab("Даты")
 	g.AddRadio("vIsOfferGroup Checked1", "КП клиенту").OnEvent("Click", SwitchRadio.Bind("toOffer"))
 	g.AddRadio("Checked0", "Размещение заказа").OnEvent("Click", SwitchRadio.Bind("toOrder"))
 	g.AddText("vSourceDate r1", "Дата КП:")
 	g.AddDateTime("yp-3 x75 vStartDate w97", "dd.MM.yyyy")
-	g.AddText("vDaysText x22 y114 r1 w150", "+/- дней(EXW):")
+	g.AddText("vDaysText x22 yp+25 r1 w150", "+/- дней(EXW):")
 	g.AddEdit("w150")
 	g.AddUpDown("vDays Range0-180", 1).OnEvent("Change", (*) => CheckStateDate())
 	g.AddText("r1 w150 vDDPweeks", "+/- недель(DDP):")
@@ -141,12 +142,12 @@ bCalculator() {
 	g.AddEdit("r1 w150 vInputSum")
 	g.AddRadio("Checked vCurrencyRadioGroup", "RUB")
 	g.AddRadio("yp", "EUR")
-	g.AddRadio("x22 y120", "USD")
+	g.AddRadio("x22 yp+25", "USD")
 	g.AddRadio("yp", "CHF")
-	g.AddText("x22 y144 w100", "НДС:")
+	g.AddText("x22 yp+25 w100", "НДС:")
 	vat := [0, 7, 10, 12, 13, 15, 17, 18, 20]
-	g.AddDropDownList("x55 y140 r9 Choose9 w117 vTax", vat)
-	g.AddButton("x22 y168 w150", "Превратить в текст").OnEvent("Click", (*) => ClickEventSpell())
+	g.AddDropDownList("x55 yp r9 Choose9 w117 vTax", vat)
+	g.AddButton("x22 yp+25 w150", "Превратить в текст").OnEvent("Click", (*) => ClickEventSpell())
 	g.AddEdit("vOutputSum w150 r10 ReadOnly")
 	
 	ClickEventSpell() {
@@ -176,6 +177,51 @@ bCalculator() {
 		}
 		UpdateText("OutputSum", SpeltSum)
 	}
+
+	; [Вкладка "Международная доставка"] {
+	Tab3.UseTab("Международная доставка")
+	g.AddText("r1", "Стоимость доставки (евро):")
+	g.AddEdit("w150 vDeliveryCostEUR", 5600)
+	g.AddText("r1", "Наценка (%):")
+	g.AddEdit("w15 vMarkup", "3")
+	g.AddButton("vCalculateDeliveryButton w150 Default", "Пересчитать в рубли").OnEvent("Click", (*) => ClickCalculateDeliveryCost())
+	g.AddEdit("w150 vDeliveryCostRUB")
+
+	ClickCalculateDeliveryCost() {
+		; Initiate
+		Input := Float(RegExReplace(g["DeliveryCostEUR"].Text, "[^.,\d]"))
+		Percentage := Float(g["Markup"].Text)
+		CurrencyRate := Float(__ToDot(g["eEUR"].Text))
+		; Calculate formula: (input * currency rate) * (1 + (Percentage / 100))
+		InputRUB := Input * CurrencyRate
+		PercentageIncrease := InputRUB * (1 + (Percentage / 100))
+		; Update GUI
+		g["DeliveryCostRUB"].Text := __ToComma(Round(PercentageIncrease, 2))
+	}
+
+
+	; g.AddRadio("vIsOfferGroup Checked1", "КП клиенту").OnEvent("Click", SwitchRadio.Bind("toOffer"))
+	; g.AddRadio("Checked0", "Размещение заказа").OnEvent("Click", SwitchRadio.Bind("toOrder"))
+	; g.AddText("vSourceDate r1", "Дата КП:")
+	; g.AddDateTime("yp-3 x75 vStartDate w97", "dd.MM.yyyy")
+	; g.AddText("vDaysText x22 y114 r1 w150", "+/- дней(EXW):")
+	; g.AddEdit("w150")
+	; g.AddUpDown("vDays Range0-180", 1).OnEvent("Change", (*) => CheckStateDate())
+	; g.AddText("r1 w150 vDDPweeks", "+/- недель(DDP):")
+	; g.AddEdit("w150")
+	; g.AddUpDown("vWeeks Range0-180", 11).OnEvent("Change", (*) => CheckStateDate())
+	; r1 := g.AddRadio("vConditionGroup Checked", "От аванса")
+	; r2 := g.AddRadio("", "От подписания")
+	; r3 := g.AddRadio("", "От размещения заказа")
+	; r1.OnEvent("Click", (*) => SetOrderCondition(1))
+	; r2.OnEvent("Click", (*) => SetOrderCondition(2))
+	; r3.OnEvent("Click", (*) => SetOrderCondition(3))
+	; g.AddButton("vDateButton w150 Default", "Рассчитать").OnEvent("Click", (*) => ClickEventDate())
+	; g.AddGroupBox("w150 h60", "Сроки поставки")
+	; g.AddText("vResultText1a xp+5 yp+17 w70")
+	; g.AddText("vResultText1b x90 yp w70").OnEvent("DoubleClick", (*) => CopyText("ResultText1b"))
+	; g.AddText("vResultText2a x27 yp+20 w70")
+	; g.AddText("vResultText2b x90 yp w70").OnEvent("DoubleClick", (*) => CopyText("ResultText2b"))
 	
 	Tab3.UseTab()
 	
