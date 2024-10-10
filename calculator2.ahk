@@ -6,6 +6,7 @@
 #Include <CBR2>
 #Include <SpellSum>
 
+bCalculator()
 bCalculator() {
 
 	OrderCondition := 1
@@ -25,10 +26,27 @@ bCalculator() {
 		; Tab3 := g.Add("Tab3", "vTab3", ["Гарантпост", "Аммира", "Даты", "Для ДС", "Сумма прописью"])
 	; }
 
+	g.AddCheckbox("vBlockCertainRegions Checked", "Исключить области")
+
+	BLOCKED_REGIONS := Map(
+		"Белгородская область",	"Белгородскую область считаем через Аммиру",
+		"Белгород",				"Белгород считаем через Аммиру",
+		"Брянская область",		"Брянскую область считаем через Аммиру",
+		"Брянск",				"Брянск считаем через Аммиру",
+		"Воронежская область",	"Воронежскую область считаем через Аммиру",
+		"Воронеж",				"Воронеж считаем через Аммиру",
+		"Курская область",		"Курскую область считаем через Аммиру",
+		"Курск",				"Курск считаем через Аммиру",
+		"Краснодарский край",	"Краснодарскую область считаем через Аммиру",
+		"Краснодар",			"Краснодар считаем через Аммиру",
+		"Ростовская область",	"Ростовскую область считаем через Аммиру",
+		"Ростов-на-Дону",		"Ростов считаем через Аммиру",
+	)
+
 	garantpostList := []
 	for each in GARANTPOST
 		garantpostList.Push(each[1])
-	g.AddListBox("r20 vGarantpostChoice Choose1 w150 AltSubmit", garantpostList)
+	g.AddListBox("r18 vGarantpostChoice Choose1 w150 AltSubmit", garantpostList)
 	g.AddText(, "Вес в КГ:")
 	g.AddEdit("r1 vWeight w150 Number")
 	g.AddButton("vButtonGarant Default w150 Disabled", "OK")
@@ -347,6 +365,11 @@ bCalculator() {
 	ClickEventGarantPost(*) {
 		Destination := g.Submit().GarantpostChoice
 		Weight := g.Submit().Weight
+
+		if g.Submit().BlockCertainRegions {
+			if BLOCKED_REGIONS.Has(GARANTPOST[Destination][1])
+				MsgBox(BLOCKED_REGIONS[GARANTPOST[Destination][1]])
+		}
 		
 		; Conditions:
 		if Weight <= 0.1
