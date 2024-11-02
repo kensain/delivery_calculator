@@ -442,13 +442,13 @@ bCalculator() {
 			if BLOCKED_REGIONS.Has(GARANTPOST[Destination][1]) {
 				if MsgBox(BLOCKED_REGIONS[GARANTPOST[Destination][1]] "`n`nПодготовить письмо?",, "0x30 0x4") = "Yes" {
 					WriteToAmmira(Weight)
-				}
-				else {
+				} else {
 					CalculateGarantPost()
 				}
+			} else {
+				CalculateGarantPost()
 			}
-		}
-		else {
+		} else {
 			CalculateGarantPost()
 		}
 		
