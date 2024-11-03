@@ -8,10 +8,6 @@
 
 bCalculator()
 bCalculator() {
-
-	; for key in AMMIRA
-	; 	Run("https://www.google.com/search?q=" key)
-
 	OrderCondition := 1
 	SetOrderCondition(Int) {
 		OrderCondition := Int
@@ -398,7 +394,7 @@ bCalculator() {
 		g.Opt("ToolWindow AlwaysOnTop")
 		g.AddText(, "Габариты (размер или объём)")
 		g.AddEdit("r1 vDims")
-		g.AddText(, "Вес:")
+		g.AddText(, "Вес (кг):")
 		g.AddEdit("r1 vWeight w40", Weight)
 		g.AddText(, "Клиент:")
 		g.AddEdit("r1 vCustomer")
@@ -434,7 +430,13 @@ bCalculator() {
 		WriteMail() {
 			; signature := "`n`nС уважением,`n`nПортнов Максим`nМенеджер по работе с клиентами`n`nООО «Бюлер Сервис»`nул. Отрадная, д. 2Б, стр. 1,`n127273 Москва, Россия`nТел.:  +7 495 139 34 00 (доб.162)`nМоб.:  +7 916 420 79 60`n`nmaxim.portnov@buhlergroup.com`nwww.buhlergroup.com"
 			
-			Outlook := ComObjActive("Outlook.Application")
+			try {
+				Outlook := ComObjActive("Outlook.Application")
+			} catch Error as e {
+				MsgBox("Ошибка: " e.Message "`nВозможно, Outlook не запущен.")
+				Exit()
+			}
+			
 			email := Outlook.CreateItem(0)
 			email.BodyFormat := 1 ; olFormatHTML
 			email.Subject := "Расчёт доставки // " Data.CustomerName
