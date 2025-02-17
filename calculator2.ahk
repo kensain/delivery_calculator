@@ -1,13 +1,12 @@
 #SingleInstance Force
 #Requires AutoHotkey v2.0-a
-#Include <tariffs_2024>
+#Include <tariffs_2025>
 #Include <DeliveryCosts>
 #Include <Info>
 #Include <CBR2>
 #Include <SpellSum>
 
 bCalculator() {
-
 	OrderCondition := 1
 	SetOrderCondition(Int) {
 		OrderCondition := Int
@@ -25,16 +24,49 @@ bCalculator() {
 		; Tab3 := g.Add("Tab3", "vTab3", ["Гарантпост", "Аммира", "Даты", "Для ДС", "Сумма прописью"])
 	; }
 
+
+	BLOCKED_REGIONS := Map(
+		"Белгородская область",	"Белгородскую область считаем через Аммиру",
+		"Белгород",				"Белгородскую область считаем через Аммиру",
+		"Брянская область",		"Брянскую область считаем через Аммиру",
+		"Брянск",				"Брянскую область считаем через Аммиру",
+		"Воронежская область",	"Воронежскую область считаем через Аммиру",
+		"Воронеж",				"Воронежскую область считаем через Аммиру",
+		"Курская область",		"Курскую область считаем через Аммиру",
+		"Курск",				"Курскую область считаем через Аммиру",
+		"Краснодарский край",	"Краснодарскую область считаем через Аммиру",
+		"Краснодар",			"Краснодарскую область считаем через Аммиру",
+		"Ростовская область",	"Ростовскую область считаем через Аммиру",
+		"Ростов-на-Дону",		"Ростовскую область считаем через Аммиру",
+		"Азов", 				"Ростовская область",
+		"Аксай", 				"Ростовская область",
+		"Алексеевка", 			"Белгородская область",
+		"Батайск", 				"Ростовская область",
+		"Белая Глина", 			"Краснодарский край",
+		"Затонский", 			"Ростовская область",
+		"Кореновск", 			"Краснодарский край",
+		"Краснодар", 			"Краснодарский край",
+		"Севск", 				"Брянская область",
+		"Славянск-на-Кубани", 	"Краснодарский край",
+		"Советское", 			"Белгородская область?",
+		"Старый Оскол", 		"Белгородская область",
+		"Таганрог", 			"Ростовская область",
+		"Тамань", 				"Краснодарский край",
+		"Тимашевск", 			"Краснодарский край",
+		"Шебекино", 			"Белгородская область"
+	)
+
 	garantpostList := []
 	for each in GARANTPOST
 		garantpostList.Push(each[1])
-	g.AddListBox("r20 vGarantpostChoice Choose1 w150 AltSubmit", garantpostList)
+	g.AddListBox("r18 vGarantpostChoice Choose1 w150 AltSubmit", garantpostList)
 	g.AddText(, "Вес в КГ:")
 	g.AddEdit("r1 vWeight w150 Number")
 	g.AddButton("vButtonGarant Default w150 Disabled", "OK")
 	g["ButtonGarant"].OnEvent("Click", ClickEventGarantPost)
 	g["Weight"].OnEvent("Change", (*) => __CheckState("ButtonGarant", "Weight"))
 	Tab3.UseTab()
+	g.AddCheckbox("vBlockCertainRegions Checked", "Исключить области")
 	g.AddText(, "Курсы на")
 	CalendarDate := "Choose" . FormatTime(A_Now, "yyyyMMdd")
 	g.AddDateTime("yp w108 vCBRDate " . CalendarDate, "dd.MM.yyyy").OnEvent("Change", (*) => UpdateRates())
@@ -62,7 +94,7 @@ bCalculator() {
 	AmmiraCities := []
 	for key, value in AMMIRA
 		AmmiraCities.Push(key)
-	g.AddListBox("r20 vAmmiraChoice Choose1 w150", AmmiraCities)
+	g.AddListBox("r18 vAmmiraChoice Choose1 w150", AmmiraCities)
 	g.AddText(, "Вес в КГ:")
 	g.AddEdit("r1 vWeightAmmira w150 Number")
 	g["WeightAmmira"].OnEvent("Change", (*) => __CheckState("ButtonAmmira", "WeightAmmira"))
@@ -237,33 +269,45 @@ bCalculator() {
 		
 		destination := g.Submit().AmmiraChoice
 		weight := g.Submit().WeightAmmira
-		
-		if weight <= 500
-			tariff := up_to_500kg
-		else if weight <= 1000
-			tariff := up_to_1t
-		else if weight <= 2000
-			tariff := up_to_2t
-		else if weight <= 3000
-			tariff := up_to_3t
-		else if weight <= 5000
-			tariff := up_to_5t
-		else if weight <= 10000
-			tariff := up_to_10t
-		else if weight <= 15000
-			tariff := up_to_15t
-		else if weight <= 20000
-			tariff := up_to_20t
-		else {
-			MsgBox("Вес превышает лимит в 20 тонн!", "Ошибка!", "0x30")
-			Exit()
+
+		if g.Submit().BlockCertainRegions {
+			if BLOCKED_REGIONS.Has(destination) {
+				if MsgBox(BLOCKED_REGIONS[destination] "`n`nПодготовить письмо?",, "0x30 0x4") = "Yes"
+					WriteToAmmira(Weight)
+			} else {
+				CalculateAmmira()
+			}
+		} else {
+			CalculateAmmira()
 		}
-		
-		price := AMMIRA[destination][tariff]
-		
-		costs := [price, __FormatPrice(price, g["eEUR"].Value), __FormatPrice(price, g["eCHF"].Value), __FormatPrice(price, g["eUSD"].Value), __FormatPrice(price, g["eCNY"].Value)]
-		title := Format("Стоимость доставки {1} кг в {2}", weight, destination)
-		DeliveryCosts(title, costs*)
+		CalculateAmmira() {
+			if weight <= 500
+				tariff := up_to_500kg
+			else if weight <= 1000
+				tariff := up_to_1t
+			else if weight <= 2000
+				tariff := up_to_2t
+			else if weight <= 3000
+				tariff := up_to_3t
+			else if weight <= 5000
+				tariff := up_to_5t
+			else if weight <= 10000
+				tariff := up_to_10t
+			else if weight <= 15000
+				tariff := up_to_15t
+			else if weight <= 20000
+				tariff := up_to_20t
+			else {
+				MsgBox("Вес превышает лимит в 20 тонн!", "Ошибка!", "0x30")
+				Exit()
+			}
+			
+			price := AMMIRA[destination][tariff]
+			
+			costs := [price, __FormatPrice(price, g["eEUR"].Value), __FormatPrice(price, g["eCHF"].Value), __FormatPrice(price, g["eUSD"].Value), __FormatPrice(price, g["eCNY"].Value)]
+			title := Format("Стоимость доставки {1} кг в {2}", weight, destination)
+			DeliveryCosts(title, costs*)
+		}
 	}
 	
 	__CheckState(vButton, vEdit) {
@@ -343,49 +387,128 @@ bCalculator() {
 
 	}
 
+	WriteToAmmira(Weight := "") {
+		g := Gui()
+		g.Title := "Письмо в Аммиру"
+		g.Opt("ToolWindow AlwaysOnTop")
+		g.AddText(, "Габариты (размер или объём)")
+		g.AddEdit("r1 vDims")
+		g.AddText(, "Вес (кг):")
+		g.AddEdit("r1 vWeight w40", Weight)
+		g.AddText(, "Клиент:")
+		g.AddEdit("r1 vCustomer")
+		g.AddText(, "Адрес клиента:")
+		g.AddEdit("r3 vAddress")
+		button := g.AddButton("Default w80", "OK")
+		g.OnEvent("Escape", (*) => CloseGui())
+		g.OnEvent("Close", (*) => CloseGui())
+		button.OnEvent("Click", (*) => WhenClicked())
+		g.Show()
+		Data := {
+			Dimensions: "",
+			CustomerName: "",
+			CustomerAddress: "",
+			Weight: ""
+		}
 	
+		WhenClicked() {
+			gSub := g.Submit()
+			Data.Dimensions := gSub.Dims = "" ? "____" : gSub.Dims
+			Data.CustomerName := gSub.Customer = "" ? "____" : gSub.Customer
+			Data.CustomerAddress := gSub.Address = "" ? "____" : gSub.Address
+			Data.Weight := gSub.Weight = "" ? "____" : gSub.Weight
+	
+			WriteMail()
+		}
+	
+		CloseGui() {
+			g.Destroy()
+			Exit()
+		}
+	
+		WriteMail() {
+			; signature := "`n`nС уважением,`n`nПортнов Максим`nМенеджер по работе с клиентами`n`nООО «Бюлер Сервис»`nул. Отрадная, д. 2Б, стр. 1,`n127273 Москва, Россия`nТел.:  +7 495 139 34 00 (доб.162)`nМоб.:  +7 916 420 79 60`n`nmaxim.portnov@buhlergroup.com`nwww.buhlergroup.com"
+			
+			try {
+				Outlook := ComObjActive("Outlook.Application")
+			} catch Error as e {
+				MsgBox("Ошибка: " e.Message "`nВозможно, Outlook не запущен.")
+				Exit()
+			}
+			
+			email := Outlook.CreateItem(0)
+			email.BodyFormat := 1 ; olFormatHTML
+			email.Subject := "Расчёт доставки // " Data.CustomerName
+			mailText := "Здравствуйте, Фёдор,`n`nпрошу рассчитать стоимость доставки до клиента " Data.CustomerName ".`n`nАдрес доставки: " Data.CustomerAddress "."
+			; if Data.dimensions != ""
+				mailText .= "`nГабариты: " Data.Dimensions ", вес: " Data.Weight " кг."
+			; mailText .= signature
+			email.Body := mailText
+			email.To := "tk.ammira@gmail.com"
+			;email.CC := "bgoodman@vip-logistics.ru; nikolai.lovyagin@buhlergroup.com"
+			email.Display()
+			Outlook := ""
+		}
+	}
+
 	ClickEventGarantPost(*) {
 		Destination := g.Submit().GarantpostChoice
 		Weight := g.Submit().Weight
-		
-		; Conditions:
-		if Weight <= 0.1
-			Tariff := 2
-		else if Weight <= 0.5
-			Tariff := 3
-		else if Weight <= 1
-			Tariff := 4
-		else if Weight > 1 {
-			Tariff := 4
-			Markup := Destination = 2 and Weight > 32 ? "****" : 5 ; если СПб и больше 32 кг
-		}
-		
-		; Calculate price
-		if !IsSet(Markup)
-			Price := GARANTPOST[Destination][Tariff]
-		else {
-			if Markup = "****"
-				Price := "****"
-		else
-			Price := GARANTPOST[Destination][Tariff] + ((Weight - 1) * GARANTPOST[Destination][Markup])
-		}
-		
-		if Price != "****" {
-			Costs := [
-				Price,
-				__FormatPrice(Price, g["eEUR"].Value),
-				__FormatPrice(Price, g["eCHF"].Value),
-				__FormatPrice(Price, g["eUSD"].Value),
-				__FormatPrice(Price, g["eCNY"].Value)
-			]
-			Title := Format("Стоимость доставки {1} кг в {2}", Weight, GARANTPOST[Destination][1])
-			DeliveryCosts(Title, Costs*)
+
+		if g.Submit().BlockCertainRegions {
+			if BLOCKED_REGIONS.Has(GARANTPOST[Destination][1]) {
+				if MsgBox(BLOCKED_REGIONS[GARANTPOST[Destination][1]] "`n`nПодготовить письмо?",, "0x30 0x4") = "Yes" {
+					WriteToAmmira(Weight)
+				} else {
+					CalculateGarantPost()
+				}
+			} else {
+				CalculateGarantPost()
+			}
 		} else {
-			Result := MsgBox(Format("К сожалению, для отправлений в {1} свыше 32 кг действует специальный тариф с применением регрессивной шкалы за каждый следующий кг, поэтому надо пересчитывать на сайте. `nОткрыть калькулятор на сайте?", GARANTPOST[Destination][1]), Format("Отправка в {}", GARANTPOST[Destination][1]), "YesNo")
-			if Result = "Yes"
-				Run("https://garantpost.ru/tools")
+			CalculateGarantPost()
+		}
+		
+		CalculateGarantPost() {
+			; Conditions:
+			if Weight <= 0.1
+				Tariff := 2
+			else if Weight <= 0.5
+				Tariff := 3
+			else if Weight <= 1
+				Tariff := 4
+			else if Weight > 1 {
+				Tariff := 4
+				Markup := Destination = 2 and Weight > 32 ? "****" : 5 ; если СПб и больше 32 кг
+			}
+			
+			; Calculate price
+			if !IsSet(Markup)
+				Price := GARANTPOST[Destination][Tariff]
+			else {
+				if Markup = "****"
+					Price := "****"
 			else
-				return
+				Price := GARANTPOST[Destination][Tariff] + ((Weight - 1) * GARANTPOST[Destination][Markup])
+			}
+			
+			if Price != "****" {
+				Costs := [
+					Price,
+					__FormatPrice(Price, g["eEUR"].Value),
+					__FormatPrice(Price, g["eCHF"].Value),
+					__FormatPrice(Price, g["eUSD"].Value),
+					__FormatPrice(Price, g["eCNY"].Value)
+				]
+				Title := Format("Стоимость доставки {1} кг в {2}", Weight, GARANTPOST[Destination][1])
+				DeliveryCosts(Title, Costs*)
+			} else {
+				Result := MsgBox(Format("К сожалению, для отправлений в {1} свыше 32 кг действует специальный тариф с применением регрессивной шкалы за каждый следующий кг, поэтому надо пересчитывать на сайте. `nОткрыть калькулятор на сайте?", GARANTPOST[Destination][1]), Format("Отправка в {}", GARANTPOST[Destination][1]), "YesNo")
+				if Result = "Yes"
+					Run("https://garantpost.ru/tools")
+				else
+					return
+			}
 		}
 	}
 
