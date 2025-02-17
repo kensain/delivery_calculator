@@ -1,12 +1,11 @@
 #SingleInstance Force
 #Requires AutoHotkey v2.0-a
-#Include <tariffs_2024>
+#Include <tariffs_2025>
 #Include <DeliveryCosts>
 #Include <Info>
 #Include <CBR2>
 #Include <SpellSum>
 
-bCalculator()
 bCalculator() {
 	OrderCondition := 1
 	SetOrderCondition(Int) {
