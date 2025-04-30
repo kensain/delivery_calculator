@@ -1,12 +1,15 @@
 #SingleInstance Force
 #Requires AutoHotkey v2.0-a
-#Include <tariffs_2025>
-#Include <DeliveryCosts>
+#Include ./Lib/tariffs_2025.ahk
+#Include ./Lib/DeliveryCosts.ahk
 #Include <Info>
 #Include <CBR2>
 #Include <SpellSum>
 
 bCalculator() {
+
+	TraySetIcon("icon.ico")
+
 	OrderCondition := 1
 	SetOrderCondition(Int) {
 		OrderCondition := Int
