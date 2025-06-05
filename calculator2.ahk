@@ -20,7 +20,7 @@ bCalculator() {
 	g.Opt("AlwaysOnTop ToolWindow")
 	g.OnEvent("Escape", (*) => __CloseGui())
 	g.OnEvent("Close", (*) => __CloseGui())
-	g.Title := "Калькулятор доставки 2024"
+	g.Title := "Калькулятор доставки 2025"
 
 	Tab3 := g.Add("Tab3", "vTab3", ["Гарантпост", "Аммира", "Даты", "Сумма прописью", "Международная доставка"])
 	; [Оставить для возможного возврата вкладки "Для ДС" в будущем]{
@@ -574,6 +574,3 @@ bCalculator() {
 
 	g.Show()
 }
-
-if !A_IsCompiled
-	bCalculator()
