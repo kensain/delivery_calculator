@@ -574,3 +574,6 @@ bCalculator() {
 
 	g.Show()
 }
+
+if !A_IsCompiled
+	bCalculator()
