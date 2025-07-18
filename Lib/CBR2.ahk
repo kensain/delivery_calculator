@@ -11,19 +11,28 @@ CBR2(Date?) {
 	WinHttp.Open("GET", url)
 	WinHttp.Send()
 	res := WinHttp.ResponseText
-	arr := StrSplit(res, "</Valute>",, 43)
+
 	Currencies := Map()
-	for k, v in arr {
-		RegExMatch(v, "(?<=<CharCode>)\w*(?=<\/CharCode>)", &CharCode)
-		RegExMatch(v, "(?<=<Value>).*(?=<\/Value>)", &Rate)
-		Currencies.Set(CharCode[], Rate[])
+
+	doc := loadXML(res)
+	for valute in doc.getElementsByTagName("Valute") {
+		Currencies.Set(
+			valute.selectSingleNode("CharCode").Text,
+			valute.selectSingleNode("Value").Text
+		)
 	}
-	RegExMatch(res, "(?<=ValCurs Date=`").*(?=`" name=`")", &RateDate)
-	
+
 	OutputObj := {
 		Currency: Currencies,
-		Date: RateDate[]
+		Date: doc.selectSingleNode("/ValCurs/@Date").Text
 	}
 
 	return OutputObj
+	
+	loadXML(data) {
+	  o := ComObject("MSXML2.DOMDocument.6.0")
+	  o.async := false
+	  o.loadXML(data)
+	  return o
+	}
 }
