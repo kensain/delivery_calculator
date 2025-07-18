@@ -62,7 +62,7 @@ bCalculator() {
 	garantpostList := []
 	for each in GARANTPOST
 		garantpostList.Push(each[1])
-	g.AddListBox("r18 vGarantpostChoice Choose1 w150 AltSubmit", garantpostList)
+	g.AddComboBox("r18 vGarantpostChoice Choose1 w150 AltSubmit Simple", garantpostList)
 	g.AddText(, "Вес в КГ:")
 	g.AddEdit("r1 vWeight w150 Number")
 	g.AddButton("vButtonGarant Default w150 Disabled", "OK")
@@ -97,7 +97,7 @@ bCalculator() {
 	AmmiraCities := []
 	for key, value in AMMIRA
 		AmmiraCities.Push(key)
-	g.AddListBox("r18 vAmmiraChoice Choose1 w150", AmmiraCities)
+	g.AddComboBox("r18 vAmmiraChoice Choose1 w150 Simple", AmmiraCities)
 	g.AddText(, "Вес в КГ:")
 	g.AddEdit("r1 vWeightAmmira w150 Number")
 	g["WeightAmmira"].OnEvent("Change", (*) => __CheckState("ButtonAmmira", "WeightAmmira"))
