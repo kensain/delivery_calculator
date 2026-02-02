@@ -1,6 +1,6 @@
 #SingleInstance Force
 #Requires AutoHotkey v2.0-a
-#Include ./Lib/tariffs_2025.ahk
+#Include ./Lib/tariffs_2026.ahk
 #Include ./Lib/DeliveryCosts.ahk
 #Include <Info>
 #Include <CBR2>
@@ -21,13 +21,12 @@ bCalculator() {
 	g.Opt("AlwaysOnTop ToolWindow")
 	g.OnEvent("Escape", (*) => __CloseGui())
 	g.OnEvent("Close", (*) => __CloseGui())
-	g.Title := "Калькулятор доставки 2025"
+	g.Title := "Калькулятор доставки 2026"
 
 	Tab3 := g.Add("Tab3", "vTab3", ["Гарантпост", "Аммира", "Даты", "Сумма прописью", "Международная доставка"])
 	; [Оставить для возможного возврата вкладки "Для ДС" в будущем]{
 		; Tab3 := g.Add("Tab3", "vTab3", ["Гарантпост", "Аммира", "Даты", "Для ДС", "Сумма прописью"])
 	; }
-
 
 	BLOCKED_REGIONS := Map(
 		"Белгородская область",	"Белгородскую область считаем через Аммиру",
@@ -59,14 +58,16 @@ bCalculator() {
 		"Тимашевск", 			"Краснодарский край",
 		"Шебекино", 			"Белгородская область"
 	)
+    ; Width value used by multiple elements to retain same size.
+    SHARED_WIDTH := 230
 
 	garantpostList := []
 	for each in GARANTPOST
 		garantpostList.Push(each[1])
-	g.AddComboBox("r18 vGarantpostChoice Choose1 w150 AltSubmit Simple", garantpostList)
+	g.AddComboBox(Format("r18 vGarantpostChoice Choose1 w{1} AltSubmit Simple", SHARED_WIDTH), garantpostList)
 	g.AddText(, "Вес в КГ:")
-	g.AddEdit("r1 vWeight w150 Number")
-	g.AddButton("vButtonGarant Default w150 Disabled", "OK")
+	g.AddEdit(Format("r1 vWeight w{1} Number", SHARED_WIDTH))
+	g.AddButton(Format("vButtonGarant Default w{1} Disabled", SHARED_WIDTH), "OK")
 	g["ButtonGarant"].OnEvent("Click", ClickEventGarantPost)
 	g["Weight"].OnEvent("Change", (*) => __CheckState("ButtonGarant", "Weight"))
 	Tab3.UseTab()
@@ -98,11 +99,11 @@ bCalculator() {
 	AmmiraCities := []
 	for key, value in AMMIRA
 		AmmiraCities.Push(key)
-	g.AddComboBox("r18 vAmmiraChoice Choose1 w150 Simple", AmmiraCities)
+	g.AddComboBox(Format("r18 vAmmiraChoice Choose1 w{1} Simple", SHARED_WIDTH), AmmiraCities)
 	g.AddText(, "Вес в КГ:")
-	g.AddEdit("r1 vWeightAmmira w150 Number")
+	g.AddEdit(Format("r1 vWeightAmmira w{1} Number", SHARED_WIDTH))
 	g["WeightAmmira"].OnEvent("Change", (*) => __CheckState("ButtonAmmira", "WeightAmmira"))
-	g.AddButton("vButtonAmmira Default w150 Disabled", "OK").OnEvent("Click", ClickEventAmmira)
+	g.AddButton(Format("vButtonAmmira Default w{1} Disabled", SHARED_WIDTH), "OK").OnEvent("Click", ClickEventAmmira)
 	; }
 
 	; [Вкладка "Даты"] {
@@ -546,14 +547,28 @@ bCalculator() {
 	UpdateRates(date?) {
 		if !IsSet(date)
 			date := FormatTime(g.Submit(false).CBRDate, "dd.MM.yyyy")
-		NewRates := CBR2(date)
-		date_rate := NewRates.date
-		g["eEUR"].Value := NewRates.Currency["EUR"]
-		g["eCHF"].Value := NewRates.Currency["CHF"]
-		g["eUSD"].Text := NewRates.Currency["USD"]
-		g["eCNY"].Text := NewRates.Currency["CNY"]
-		g["CBRDate"].Value := StrSplit(date_rate, ".")[3] . StrSplit(date_rate, ".")[2] . StrSplit(date_rate, ".")[1]
-		g["CBRLink"].Text := Format('Проверить курс на <a href="https://www.cbr.ru/currency_base/daily/?UniDbQuery.Posted=True&UniDbQuery.To={1}">сайте</a> ЦБ РФ', date_rate)
+        IsRateError := 0
+		try NewRates := CBR2(date)
+        catch {
+            IsRateError := 1
+        }
+        switch IsRateError {
+            case 1:
+                date_rate := "#ERR"
+                g["eEUR"].Value := "#ERR"
+                g["eCHF"].Value := "#ERR"
+                g["eUSD"].Text := "#ERR"
+                g["eCNY"].Text := "#ERR"
+                g["CBRLink"].Text := Format('Проверить курс на <a href="https://www.cbr.ru/currency_base/daily/?UniDbQuery.Posted=True&UniDbQuery.To={1}">сайте</a> ЦБ РФ', date_rate)
+            case 0:
+                date_rate := NewRates.date
+                g["eEUR"].Value := NewRates.Currency["EUR"]
+                g["eCHF"].Value := NewRates.Currency["CHF"]
+                g["eUSD"].Text := NewRates.Currency["USD"]
+                g["eCNY"].Text := NewRates.Currency["CNY"]
+                g["CBRDate"].Value := StrSplit(date_rate, ".")[3] . StrSplit(date_rate, ".")[2] . StrSplit(date_rate, ".")[1]
+                g["CBRLink"].Text := Format('Проверить курс на <a href="https://www.cbr.ru/currency_base/daily/?UniDbQuery.Posted=True&UniDbQuery.To={1}">сайте</a> ЦБ РФ', date_rate)
+        }
 	}
 		
 	/**
@@ -565,7 +580,7 @@ bCalculator() {
 		if g[vControlName].Text = ""
 			return
 		Conditions := Map(
-			1, "{1} с момента поступления авансового платежа на счет Поставщика.",
+			1, "{1} с момента поступления авансового платежа на счет Поставщика. Досрочная поставка допускается.",
 			2, "{1} с момента подписания спецификации уполномоченными представителями Поставщика и Покупателя.",
 			3, "{1} с момента подписания заказа уполномоченными представителями Поставщика и Покупателя.",
 		)
@@ -573,5 +588,8 @@ bCalculator() {
 		Info(Format("Текст '{1}' скопирован!", A_Clipboard))
 	}
 
-	g.Show()
+	g.Show("x1440")
 }
+
+if !A_IsCompiled
+    bCalculator()
