@@ -85,11 +85,20 @@ bCalculator() {
 	g.AddEdit("veUSD ReadOnly r1 w55 yp")
 	g.AddText("vtCNY r1 w22 yp", "CNY")
 	g.AddEdit("veCNY ReadOnly r1 w55 yp")
-	g["tEUR"].OnEvent("DoubleClick", (*) => Info(g["eEUR"].Text))
-	g["tCHF"].OnEvent("DoubleClick", (*) => Info(g["eCHF"].Text))
-	g["tUSD"].OnEvent("DoubleClick", (*) => Info(g["eUSD"].Text))
-	g["tCNY"].OnEvent("DoubleClick", (*) => Info(g["eCNY"].Text))
+	g["tEUR"].OnEvent("DoubleClick", (*) => OnCurrencyDoubleClick("EUR"))
+	g["tCHF"].OnEvent("DoubleClick", (*) => OnCurrencyDoubleClick("CHF"))
+	g["tUSD"].OnEvent("DoubleClick", (*) => OnCurrencyDoubleClick("USD"))
+	g["tCNY"].OnEvent("DoubleClick", (*) => OnCurrencyDoubleClick("CNY"))
 	g.AddLink("xm r1 w180 vCBRLink")
+
+	/**
+	 * 
+	 * @param {String} EditName 
+	 */
+	OnCurrencyDoubleClick(EditName) {
+		A_Clipboard := g["e" . EditName].Text
+		Info(Format("Курс валюты {1} {2} скопирован в буфер обмена!", EditName, A_Clipboard))
+	}
 	; }
 	
 	UpdateRates()
