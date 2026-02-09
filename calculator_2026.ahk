@@ -14,7 +14,7 @@ bCalculator() {
 	OrderCondition := 1
 	SetOrderCondition(Int) {
 		OrderCondition := Int
-		Info(Int)
+		; Info(Int)
 	}
 
 	g := Gui()
