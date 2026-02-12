@@ -272,55 +272,50 @@ bCalculator() {
 	Tab3.UseTab()
 	
 	ClickEventAmmira(*) {
-		up_to_500kg := 1
-		up_to_1t := 2
-		up_to_2t := 3
-		up_to_3t := 4
-		up_to_5t := 5
-		up_to_10t := 6
-		up_to_15t := 7
-		up_to_20t := 8
+		up_to_250kg := 1
+		up_to_500kg := 2
+		up_to_1t := 3
+		up_to_2t := 4
+		up_to_3t := 5
+		up_to_5t := 6
+		up_to_7t := 7
+		up_to_10t := 8
+		up_to_15t := 9
+		up_to_20t := 10
 		
 		destination := g.Submit().AmmiraChoice
 		weight := g.Submit().WeightAmmira
 
-		if g.Submit().BlockCertainRegions {
-			if BLOCKED_REGIONS.Has(destination) {
-				if MsgBox(BLOCKED_REGIONS[destination] "`n`nПодготовить письмо?",, "0x30 0x4") = "Yes"
-					WriteToAmmira(Weight)
-			} else {
-				CalculateAmmira()
-			}
-		} else {
-			CalculateAmmira()
-		}
-		CalculateAmmira() {
-			if weight <= 500
-				tariff := up_to_500kg
-			else if weight <= 1000
-				tariff := up_to_1t
-			else if weight <= 2000
-				tariff := up_to_2t
-			else if weight <= 3000
-				tariff := up_to_3t
-			else if weight <= 5000
-				tariff := up_to_5t
-			else if weight <= 10000
-				tariff := up_to_10t
-			else if weight <= 15000
-				tariff := up_to_15t
-			else if weight <= 20000
-				tariff := up_to_20t
-			else {
-				MsgBox("Вес превышает лимит в 20 тонн!", "Ошибка!", "0x30")
-				Exit()
-			}
-			
+        CalculateAmmira()
+
+        CalculateAmmira() {
+			if !tariff := GetTariff(weight)
+                return
 			price := AMMIRA[destination][tariff]
 			
 			costs := [price, __FormatPrice(price, g["eEUR"].Value), __FormatPrice(price, g["eCHF"].Value), __FormatPrice(price, g["eUSD"].Value), __FormatPrice(price, g["eCNY"].Value)]
 			title := Format("Стоимость доставки {1} кг в {2}", weight, destination)
 			DeliveryCosts(title, costs*)
+
+			GetTariff(Weight) {
+				TariffTable := [
+					{ MaxWeight: 500,    Tariff: up_to_500kg },
+					{ MaxWeight: 1000,   Tariff: up_to_1t    },
+					{ MaxWeight: 2000,   Tariff: up_to_2t    },
+					{ MaxWeight: 3000,   Tariff: up_to_3t    },
+					{ MaxWeight: 5000,   Tariff: up_to_5t    },
+					{ MaxWeight: 10000,  Tariff: up_to_10t   },
+					{ MaxWeight: 15000,  Tariff: up_to_15t   },
+					{ MaxWeight: 20000,  Tariff: up_to_20t   }
+				]
+
+                for entry in TariffTable {
+                    if Weight <= entry.MaxWeight
+                        return entry.Tariff
+                }
+
+                MsgBox("Вес превышает лимит в 20 тонн!", "Ошибка", "0x10")
+			}
 		}
 	}
 	
