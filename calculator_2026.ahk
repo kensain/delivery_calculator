@@ -14,7 +14,6 @@ bCalculator() {
 	OrderCondition := 1
 	SetOrderCondition(Int) {
 		OrderCondition := Int
-		; Info(Int)
 	}
 
 	g := Gui()
@@ -293,7 +292,14 @@ bCalculator() {
                 return
 			price := AMMIRA[destination][tariff]
 			
-			costs := [price, __FormatPrice(price, g["eEUR"].Value), __FormatPrice(price, g["eCHF"].Value), __FormatPrice(price, g["eUSD"].Value), __FormatPrice(price, g["eCNY"].Value)]
+			costs := [
+				price,
+				__FormatPrice(price, g["eEUR"].Value),
+				__FormatPrice(price, g["eCHF"].Value),
+				__FormatPrice(price, g["eUSD"].Value),
+				__FormatPrice(price, g["eCNY"].Value)
+			]
+
 			title := Format("Стоимость доставки {1} кг в {2}", weight, destination)
 			DeliveryCosts(title, costs*)
 
@@ -330,9 +336,9 @@ bCalculator() {
 		switch CalculationMode {
 			case "toOffer":
 				Offer()
-				case "toOrder":
-					Order()
-				}
+			case "toOrder":
+				Order()
+		}
 				
 		Offer() {
 			UpdateText("SourceDate", "Дата КП")
@@ -345,6 +351,7 @@ bCalculator() {
 			r2.Enabled := 1
 			r3.Enabled := 1
 		}
+
 		Order() {
 			UpdateText("SourceDate", "Дата заказа")
 			UpdateText("DaysText", "Недель от BUZ до клиента:")
@@ -436,8 +443,6 @@ bCalculator() {
 		}
 	
 		WriteMail() {
-			; signature := "`n`nС уважением,`n`nПортнов Максим`nМенеджер по работе с клиентами`n`nООО «Бюлер Сервис»`nул. Отрадная, д. 2Б, стр. 1,`n127273 Москва, Россия`nТел.:  +7 495 139 34 00 (доб.162)`nМоб.:  +7 916 420 79 60`n`nmaxim.portnov@buhlergroup.com`nwww.buhlergroup.com"
-			
 			try {
 				Outlook := ComObjActive("Outlook.Application")
 			} catch Error as e {
@@ -542,17 +547,17 @@ bCalculator() {
 		g[vControlName].Value := NewText
 	}
 	
-	__ConvertDate(date) {
-		input := StrSplit(date, ".")
+	__ConvertDate(Date) {
+		input := StrSplit(Date, ".")
 		output := "Choose" . input[3] . input[2] . input[1]
 		return output
 	}
 
-	UpdateRates(date?) {
-		if !IsSet(date)
-			date := FormatTime(g.Submit(false).CBRDate, "dd.MM.yyyy")
+	UpdateRates(Date?) {
+		if !IsSet(Date)
+			Date := FormatTime(g.Submit(false).CBRDate, "dd.MM.yyyy")
         IsRateError := 0
-		try NewRates := CBR2(date)
+		try NewRates := CBR2(Date)
         catch {
             IsRateError := 1
         }
@@ -565,7 +570,7 @@ bCalculator() {
                 g["eCNY"].Text := "#ERR"
                 g["CBRLink"].Text := Format('Проверить курс на <a href="https://www.cbr.ru/currency_base/daily/?UniDbQuery.Posted=True&UniDbQuery.To={1}">сайте</a> ЦБ РФ', date_rate)
             case 0:
-                date_rate := NewRates.date
+                date_rate := NewRates.Date
                 g["eEUR"].Value := NewRates.Currency["EUR"]
                 g["eCHF"].Value := NewRates.Currency["CHF"]
                 g["eUSD"].Text := NewRates.Currency["USD"]
