@@ -32,6 +32,7 @@ SpellSum(Number, Currency := "RUB", VAT := 20, Separator := ",") {
         MsgBox("Request failed with status code " response.Status)
     } else {
         xml := response.ResponseText
+        OutputDebug(xml)
         ; A_Clipboard := xml
         
         results_quantity := 11
