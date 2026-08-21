@@ -190,8 +190,8 @@ bCalculator() {
 	g.AddRadio("x22 yp+25", "USD")
 	g.AddRadio("yp", "CHF")
 	g.AddText("x22 yp+25 w100", "НДС:")
-	vat := [0, 7, 10, 12, 13, 15, 17, 18, 20]
-	g.AddDropDownList("x55 yp r9 Choose9 w117 vTax", vat)
+	vat := [0, 7, 10, 12, 13, 15, 17, 18, 20, 22]
+	g.AddDropDownList("x55 yp r9 Choose10 w117 vTax", vat)
 	g.AddButton("x22 yp+25 w150", "Превратить в текст").OnEvent("Click", (*) => ClickEventSpell())
 	g.AddEdit("vOutputSum w150 r10 ReadOnly")
 	
